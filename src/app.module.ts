@@ -3,10 +3,12 @@ import { AppController } from './app.controller';
 import { PassportModule } from '@nestjs/passport';
 import { APP_GUARD } from '@nestjs/core';
 import * as cookieParser from 'cookie-parser';
-import { AppService } from './app.service';
 import { ScheduleModule } from '@nestjs/schedule';
 import { CacheModule } from '@nestjs/cache-manager';
 import { DatabaseModule } from './database/database.module';
+import { AuthModule } from './auth/auth.module';
+import { UsersModule } from './users/users.module';
+import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 
 const passportModule = PassportModule.register({ defaultStrategy: 'jwt' });
 
@@ -16,8 +18,10 @@ const passportModule = PassportModule.register({ defaultStrategy: 'jwt' });
     ScheduleModule.forRoot(),
     CacheModule.register(),
     DatabaseModule,
+    AuthModule,
+    UsersModule,
   ],
-  providers: [AppService],
+  providers: [{ provide: APP_GUARD, useClass: JwtAuthGuard }],
   controllers: [AppController],
 })
 export class AppModule implements NestModule {
