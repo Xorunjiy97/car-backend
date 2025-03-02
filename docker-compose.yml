@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  backend:
+    build: .
+    container_name: nestjs_car-backend
+    ports:
+      - '3000:3000'
+    depends_on:
+      - db
+    env_file:
+      - .env
+    networks:
+      - nestjs_network
+
+  db:
+    image: postgres:latest
+    container_name: postgres_db
+    ports:
+      - '5432:5432'
+    env_file:
+      - .env
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    networks:
+      - nestjs_network
+
+networks:
+  nestjs_network:
+
+volumes:
+  db_data:
