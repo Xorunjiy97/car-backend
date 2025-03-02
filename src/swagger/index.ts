@@ -11,6 +11,7 @@ export const initSwagger = (
     .setDescription('The Backend API description')
     .setVersion('1')
     .addCookieAuth()
+    .addServer('http://localhost:3002')
     .build();
 
   const document = SwaggerModule.createDocument(app, options);

@@ -10,7 +10,7 @@ import { AppConfigService } from '../config/config.service';
       inject: [AppConfigService],
       useFactory: (configService: AppConfigService) => ({
         ...configService.defaultDatabaseOptions,
-        synchronize: false,
+        synchronize: true,
         autoLoadEntities: true,
         cache: false,
         logging: 'all',

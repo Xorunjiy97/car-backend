@@ -18,6 +18,11 @@ async function bootstrap() {
 
   app.use(cookieParser(cookie));
   app.setGlobalPrefix(configService.globalPrefix);
+  app.enableCors({
+    origin: '*',
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+    credentials: true,
+  });
 
   if (configService.isProd) {
     app.use(
