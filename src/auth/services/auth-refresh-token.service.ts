@@ -22,11 +22,11 @@ export class AuthRefreshTokenService {
   }
 
   async generateTokenPair(
-    { sub, role, email }: JwtPayload,
+    { sub, role, phone }: JwtPayload,
     currentRefreshToken?: string,
   ) {
-    const accessPayload = { sub, role, email, type: 'access' };
-    const refreshPayload = { sub, role, email, type: 'refresh' };
+    const accessPayload = { sub, role, phone, type: 'access' };
+    const refreshPayload = { sub, role, phone, type: 'refresh' };
     return {
       access_token: this.jwtService.sign(accessPayload),
       refresh_token: await this.generateRefreshToken(

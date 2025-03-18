@@ -23,7 +23,7 @@ export class AuthService {
     private readonly userRepository: UserRepository,
   ) {}
 
-  async register({ email, password }: RegisterDto): Promise<{
+  async register({ phone, password }: RegisterDto): Promise<{
     user: User;
     tokenPair: { access_token: string; refresh_token: string };
   }> {
@@ -31,7 +31,7 @@ export class AuthService {
       const hashedPassword = await generateHash(password);
 
       const createdUser = manager.create(User, {
-        email,
+        phone,
         password: hashedPassword,
         role: UserRoleEnum.USER,
       });
@@ -39,7 +39,7 @@ export class AuthService {
       const user = await manager.save(createdUser);
 
       const payload: JwtPayload = {
-        email,
+        phone,
         role: UserRoleEnum.USER,
         sub: user.id,
       };
@@ -55,10 +55,10 @@ export class AuthService {
     return await this.authRefreshTokenService.regenerateTokenPair(refreshToken);
   }
 
-  async signIn({ email, password }: AuthCredentialsDto) {
-    const { user } = await this.validateUser(email, password);
+  async signIn({ phone, password }: AuthCredentialsDto) {
+    const { user } = await this.validateUser(phone, password);
 
-    const payload: JwtPayload = { email, sub: user.id, role: user.role };
+    const payload: JwtPayload = { phone, sub: user.id, role: user.role };
     const tokenPair =
       await this.authRefreshTokenService.generateTokenPair(payload);
 
@@ -69,9 +69,9 @@ export class AuthService {
     await this.authRefreshTokenService.logout(id);
   }
 
-  private async validateUser(email: string, password: string) {
+  private async validateUser(phone: string, password: string) {
     const user = await this.userRepository.findOne({
-      where: { email },
+      where: { phone },
     });
 
     if (!user) {

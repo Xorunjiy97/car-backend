@@ -7,14 +7,14 @@ export class UserResponse {
   id: number;
 
   @ApiProperty()
-  email: string;
+  phone: string;
 
   @ApiProperty({ enum: UserRoleEnum, enumName: 'UserRoleEnum' })
   role: UserRoleEnum;
 
   constructor(user: User) {
     this.id = user.id;
-    this.email = user.email;
+    this.phone = user.phone;
     this.role = user.role;
   }
 }

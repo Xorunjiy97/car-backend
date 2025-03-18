@@ -1,11 +1,9 @@
-import { IsEmail, IsNotEmpty, IsString, MinLength } from 'class-validator';
+import { IsEmail, IsNotEmpty, IsString, MinLength,IsPhoneNumber  } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class AuthCredentialsDto {
-  @ApiProperty()
-  @IsNotEmpty({ message: 'Enter email' })
-  @IsEmail({}, { message: 'Invalid email' })
-  email: string;
+  @IsPhoneNumber() // Укажите нужный регион
+  phone: string;
 
   @ApiProperty()
   @IsNotEmpty({ message: 'Enter password' })

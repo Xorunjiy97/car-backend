@@ -34,7 +34,7 @@ export class AuthController {
     user: User;
   }> {
     const { user, tokenPair } = await this.authService.register({
-      email: registerDto.email,
+      phone: registerDto.phone,
       password: registerDto.password,
     });
     setCookieUtil(res, tokenPair);

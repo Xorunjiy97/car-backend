@@ -11,7 +11,7 @@ export class TempSecretEntity {
   id: number;
 
   @Column({ unique: true })
-  email: string;
+  phone: string;
 
   @CreateDateColumn({ name: 'created_at' })
   created_at: Date;
