@@ -8,30 +8,37 @@ export class CreateCarDto {
     name: string;
 
     @ApiProperty({ example: 1, description: 'ID бренда' })
+    @Type(() => Number)
     @IsInt()
     brandId: number;
 
     @ApiProperty({ example: 2, description: 'ID модели' })
+    @Type(() => Number)
     @IsInt()
     modelId: number;
 
     @ApiProperty({ example: 3, description: 'ID страны' })
+    @Type(() => Number)
     @IsInt()
     countryId: number;
 
     @ApiProperty({ example: 4, description: 'ID типа двигателя' })
+    @Type(() => Number)
     @IsInt()
     engineTypeId: number;
 
     @ApiProperty({ example: 5, description: 'ID типа кузова' })
+    @Type(() => Number)
     @IsInt()
     bodyTypeId: number;
 
     @ApiProperty({ example: 6, description: 'ID коробки передач' })
+    @Type(() => Number)
     @IsInt()
     gearBoxId: number;
 
     @ApiProperty({ example: 200, description: 'Количество лошадиных сил' })
+    @Type(() => Number)
     @IsInt()
     hp_count: number;
 
@@ -40,18 +47,22 @@ export class CreateCarDto {
     drive_train: string;
 
     @ApiProperty({ example: 50000, description: 'Минимальная цена' })
+    @Type(() => Number)
     @IsNumber()
     priceFrom: number;
 
     @ApiProperty({ example: 70000, description: 'Максимальная цена' })
+    @Type(() => Number)
     @IsNumber()
     priceTo: number;
 
     @ApiProperty({ example: 50000, description: 'Пробег в км' })
+    @Type(() => Number)
     @IsInt()
     mileage: number;
 
     @ApiProperty({ example: 300, description: 'Мощность двигателя (кВт или л.с.)' })
+    @Type(() => Number)
     @IsInt()
     engine_power: number;
 
@@ -60,6 +71,7 @@ export class CreateCarDto {
     auctionStartDate: string; // ❗️ Дата должна быть строкой, не `Date`
 
     @ApiProperty({ example: 2022, description: 'Год выпуска' })
+    @Type(() => Number)
     @IsInt()
     year: number;
     

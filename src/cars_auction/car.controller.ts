@@ -27,6 +27,8 @@ import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
 import { Public } from '../auth/decorators/can-be-public.decorator'; // ✅ Импортируем Public
 import { Pagination } from 'nestjs-typeorm-paginate';
 import { Car } from './entities/casr-auction.entity';
+import { FileFieldsInterceptor } from '@nestjs/platform-express';
+
 
 @ApiTags('Cars') // ✅ Swagger категория
 @Controller('cars')
@@ -64,8 +66,13 @@ export class CarController {
   @Post()
   @ApiOperation({ summary: 'Создать автомобиль с фото' })
   @UseInterceptors(
-    FileInterceptor('avatar', multerConfig), // ✅ Загрузка 1 файла "avatar"
-    FilesInterceptor('photos', 5, multerConfig), // ✅ Загрузка до 5 файлов "photos"
+    FileFieldsInterceptor(
+      [
+        { name: 'avatar', maxCount: 1 },
+        { name: 'photos', maxCount: 5 },
+      ],
+      multerConfig,
+    )
   )
   @ApiConsumes('multipart/form-data') // ✅ Swagger поддержка form-data
   @ApiBody({
@@ -104,12 +111,17 @@ export class CarController {
   })
   async create(
     @Body() dto: CreateCarDto,
-    @UploadedFile() avatarFile: Express.Multer.File,
-    @UploadedFiles() files: Express.Multer.File[],
+    @UploadedFiles()
+    files: {
+      avatar?: Express.Multer.File[],
+      photos?: Express.Multer.File[],
+    },
   ) {
-    return await this.carService.create(dto, avatarFile, files);
+    const avatarFile = files.avatar?.[0] ?? null;
+    const photoFiles = files.photos ?? [];
+  
+    return await this.carService.create(dto, avatarFile, photoFiles);
   }
-
   // ✅ API для получения фото по URL
   @Get('photo/:filename')
   @ApiOperation({ summary: 'Получить фото по имени файла' })
