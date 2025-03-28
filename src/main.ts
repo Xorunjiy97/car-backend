@@ -5,6 +5,8 @@ import { AppConfigService } from './config/config.service';
 import { initSwagger } from './swagger';
 import * as cookieParser from 'cookie-parser';
 import * as basicAuth from 'express-basic-auth';
+import { join, resolve } from 'path'
+import * as express from 'express'
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -16,6 +18,12 @@ async function bootstrap() {
   const port = configService.port;
   const cookie = configService.cookieSecret;
 
+
+  // выводим путь для отладки
+  const uploadsPath = join(process.cwd(), 'uploads')
+  console.log('📂 Serving static files from:', uploadsPath)
+  
+  app.use('/uploads', express.static(uploadsPath))
   app.use(cookieParser(cookie));
   app.setGlobalPrefix(configService.globalPrefix);
   app.enableCors({
