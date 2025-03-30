@@ -12,6 +12,8 @@ import { CreateCarDto } from '../dto/create-car.dto';
 import { Cache } from 'cache-manager';
 import { Inject } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import * as fs from 'fs';
+import * as path from 'path';
 import {
   paginate,
   Pagination,
@@ -107,6 +109,31 @@ export class CarService {
     });
   }
 
+   
+  async remove(id: number): Promise<{ message: string }> {
+    const car = await this.carRepository.findOne({ where: { id } });
+  
+    if (!car) {
+      throw new Error('Car not found');
+    }
+  
+    // ✅ Удалим связанные фотографии (локально, если есть)
+    const allPhotoPaths = [...(car.photos || []), car.avatar].filter(Boolean);
+  
+    for (const photoPath of allPhotoPaths) {
+      const fileName = photoPath.split('/').pop();
+      const fullPath = path.join(__dirname, '../../../uploads/cars', fileName);
+  
+      if (fs.existsSync(fullPath)) {
+        fs.unlinkSync(fullPath);
+      }
+    }
+  
+    await this.carRepository.remove(car);
+  
+    return { message: `Автомобиль с ID ${id} удалён` };
+  }
+  
   async create(
     dto: CreateCarDto,
     avatarFile: Express.Multer.File,

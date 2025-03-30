@@ -9,6 +9,7 @@ import {
   UploadedFile,
   Res,
   Query,
+  Delete
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -33,6 +34,12 @@ import { GetCarListDto } from './dto/get-car-list.dto';
 export class CarController {
   constructor(private readonly carService: CarService) {}
 
+  @Delete(':id')
+  @ApiOperation({ summary: 'Удалить автомобиль по ID' })
+  async remove(@Param('id') id: number) {
+    return await this.carService.remove(id)
+  }
+  
   @Get()
   @ApiOperation({ summary: 'Получить автомобили с пагинацией и кэшированием' })
   @ApiQuery({
