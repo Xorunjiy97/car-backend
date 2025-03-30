@@ -23,11 +23,9 @@ import { multerConfig } from '../../multer.config';
 import { Response } from 'express';
 import * as path from 'path';
 import * as fs from 'fs';
-import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
 import { Public } from '../auth/decorators/can-be-public.decorator'; // ✅ Импортируем Public
-import { Pagination } from 'nestjs-typeorm-paginate';
-import { Car } from './entities/casr-auction.entity';
 import { FileFieldsInterceptor } from '@nestjs/platform-express';
+import { GetCarListDto } from './dto/get-car-list.dto';
 
 
 @ApiTags('Cars') // ✅ Swagger категория
@@ -49,13 +47,12 @@ export class CarController {
     type: Number,
     description: 'Количество элементов на странице',
   })
-  async findAll(
-    @Query('page') page: number = 1,
-    @Query('limit') limit: number = 10,
-  ): Promise<Pagination<Car>> {
-    return this.carService.findAll({ page, limit });
+  @Public()
+  @Get()
+  async findAll(@Query() query: GetCarListDto) {
+    return this.carService.findAll(query)
   }
-
+  @Public()
   @Get(':id')
   @ApiOperation({ summary: 'Получить автомобиль по ID' })
   async findOne(@Param('id') id: number) {

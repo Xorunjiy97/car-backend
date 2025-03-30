@@ -10,12 +10,12 @@ import { Public } from '../auth/decorators/can-be-public.decorator'; // ✅ Им
 export class BodyController {
     constructor(private readonly countryService: BodyService) { }
 
+    @Public()
     @Get()
     async findAll(): Promise<BodyModel[]> {
         return await this.countryService.findAll();
     }
 
-    @Public()
     @Post()
     async create(@Body() dto: CreateBodyDto): Promise<BodyModel> {
         return await this.countryService.create(dto.name);

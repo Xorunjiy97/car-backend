@@ -17,6 +17,7 @@ import {
   Pagination,
   IPaginationOptions,
 } from 'nestjs-typeorm-paginate';
+import { GetCarListDto } from '../dto/get-car-list.dto';
 
 @Injectable()
 export class CarService {
@@ -37,27 +38,60 @@ export class CarService {
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
   ) {}
 
-  async findAll(options: IPaginationOptions): Promise<Pagination<Car>> {
-    const cacheKey = `cars_page_${options.page}_limit_${options.limit}`;
-    const cachedCars = await this.cacheManager.get<Pagination<Car>>(cacheKey);
-
-    if (cachedCars) return cachedCars;
-
-    const queryBuilder = this.carRepository
-      .createQueryBuilder('car')
+  async findAll(filters: GetCarListDto): Promise<Pagination<Car>> {
+    const { page, limit } = filters
+    console.log(filters,'filters')
+  
+    const query = this.carRepository.createQueryBuilder('car')
       .leftJoinAndSelect('car.brand', 'brand')
       .leftJoinAndSelect('car.model', 'model')
       .leftJoinAndSelect('car.country', 'country')
-      .leftJoinAndSelect('car.engine_type', 'engine_type')
-      .leftJoinAndSelect('car.body_type', 'body_type')
-      .leftJoinAndSelect('car.gear_box', 'gear_box');
-
-    const cars = await paginate<Car>(queryBuilder, options);
-
-    await this.cacheManager.set(cacheKey, cars, 3600); // Кэшируем на 1 час
-
-    return cars;
+      .leftJoinAndSelect('car.engine_type', 'engine')
+      .leftJoinAndSelect('car.body_type', 'body')
+      .leftJoinAndSelect('car.gear_box', 'gear')
+  
+    if (filters.brandId) query.andWhere('car.brand = :brandId', { brandId: filters.brandId })
+   
+      if (filters.countryId?.length) {
+        query.andWhere('car.country IN (:...countryIds)', { countryIds: filters.countryId });
+      }
+      if (filters.engineTypeId?.length) {
+        query.andWhere('car.engine_type IN (:...engineTypeIds)', { engineTypeIds: filters.engineTypeId });
+      }
+      if (filters.bodyTypeId?.length) {
+        query.andWhere('car.body_type IN (:...bodyTypeIds)', { bodyTypeIds: filters.bodyTypeId });
+      }
+      if (filters.gearBoxId?.length) {
+        query.andWhere('car.gear_box IN (:...gearBoxIds)', { gearBoxIds: filters.gearBoxId });
+      }
+      
+  
+    if (filters.priceFromMin ) query.andWhere('car.priceFrom >= :priceFromMin', { priceFromMin: filters.priceFromMin })
+    if (filters.priceFromMax ) query.andWhere('car.priceFrom <= :priceFromMax', { priceFromMax: filters.priceFromMax })
+  
+    if (filters.mileageMin ) query.andWhere('car.mileage >= :mileageMin', { mileageMin: filters.mileageMin })
+    if (filters.mileageMax ) query.andWhere('car.mileage <= :mileageMax', { mileageMax: filters.mileageMax })
+  
+    if (filters.yearMin) query.andWhere('car.year >= :yearMin', { yearMin: filters.yearMin })
+    if (filters.yearMax) query.andWhere('car.year <= :yearMax', { yearMax: filters.yearMax })
+  
+    const [items, total] = await query
+      .skip((page - 1) * limit)
+      .take(limit)
+      .getManyAndCount()
+  
+    return {
+      items,
+      meta: {
+        totalItems: total,
+        itemCount: items.length,
+        itemsPerPage: limit,
+        totalPages: Math.ceil(total / limit),
+        currentPage: page,
+      },
+    }
   }
+  
 
   async findOne(id: number): Promise<Car> {
     return this.carRepository.findOne({

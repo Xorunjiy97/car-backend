@@ -9,13 +9,12 @@ import { Public } from '../auth/decorators/can-be-public.decorator'; // ✅ Им
 @Controller('engine')
 export class EngineController {
     constructor(private readonly countryService: EngineService) { }
-
+    @Public()
     @Get()
     async findAll(): Promise<EngineModel[]> {
         return await this.countryService.findAll();
     }
-
-    @Public()
+    
     @Post()
     async create(@Body() dto: CreateEngineDto): Promise<EngineModel> {
         return await this.countryService.create(dto.name);
