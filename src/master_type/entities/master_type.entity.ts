@@ -1,7 +1,7 @@
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne } from 'typeorm';
 
-@Entity('engine_type')
-export class EngineModel {
+@Entity('master_type')
+export class MasterModel {
     @PrimaryGeneratedColumn()
     id: number;
 

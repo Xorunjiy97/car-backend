@@ -7,15 +7,24 @@ import { EngineModel } from '../entities/engine.entity';
 export class EngineService {
     constructor(
         @InjectRepository(EngineModel)
-        private readonly brandRepository: Repository<EngineModel>,
+        private readonly engineService: Repository<EngineModel>,
     ) { }
 
     async findAll(): Promise<EngineModel[]> {
-        return await this.brandRepository.find();
+        return await this.engineService.find();
     }
 
     async create(name: string): Promise<EngineModel> {
-        const brand = this.brandRepository.create({ name });
-        return await this.brandRepository.save(brand);
+        const brand = this.engineService.create({ name });
+        return await this.engineService.save(brand);
+    }
+    async softDeleted(id: number): Promise<void> {
+        const model = await this.engineService.findOne({ where: { id } });
+        if (!model) {
+            throw new Error("Model not found")
+        }
+        model.deleted = true
+        this.engineService.save(model)
+
     }
 }

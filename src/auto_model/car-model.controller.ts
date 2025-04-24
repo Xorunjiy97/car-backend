@@ -4,7 +4,7 @@ import { CarModel } from './entities/index';
 import { CreateCarModelDto } from './dto/create-car-model.dto';
 import { ApiTags, ApiQuery } from '@nestjs/swagger';
 import { Public } from '../auth/decorators/can-be-public.decorator'; // ✅ Импортируем Public
-
+import { Delete, Param } from '@nestjs/common';
 
 @ApiTags('Car Models')
 @Controller('models')
@@ -15,6 +15,12 @@ export class CarModelController {
     @ApiQuery({ name: 'brandId', required: false, example: 1 }) // ✅ Добавляем параметр brandId
     async findAll(@Query('brandId') brandId?: number) {
         return await this.carModelService.findAll(brandId);
+    }
+
+    @Delete(':id')
+    async softDelete(@Param('id') id: number) {
+        await this.carModelService.softDeleted(id);
+        return { message: 'Model deleted successfully' };
     }
 
     @Public()

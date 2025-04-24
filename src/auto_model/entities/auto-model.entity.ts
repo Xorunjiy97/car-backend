@@ -11,4 +11,7 @@ export class CarModel {
 
     @ManyToOne(() => CarBrand, (brand) => brand.models, { onDelete: 'CASCADE' })
     brand: CarBrand;
+
+    @Column({ default: false })
+    deleted: boolean;
 }

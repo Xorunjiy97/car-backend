@@ -1,19 +1,19 @@
 import { Controller, Get, Post, Body } from '@nestjs/common';
-import { GearService } from './services/gear.service';
-import { GearModel } from './entities/gear.entity';
+import { MasterTypeService } from './services/master_type.service';
+import { MasterModel } from './entities/master_type.entity';
 import { ApiTags } from '@nestjs/swagger';
-import { CreateGearDto } from './dto/gear.dto';
+import { CreateMasterTypeDto } from './dto/master_type.dto';
 import { Public } from '../auth/decorators/can-be-public.decorator'; // ✅ Импортируем Public
 import { Delete, Param } from '@nestjs/common';
 
-@ApiTags('Gear')
-@Controller('gear')
-export class EngineController {
-    constructor(private readonly gearService: GearService) { }
+@ApiTags('master-type')
+@Controller('master-type')
+export class MasterTypeController {
+    constructor(private readonly gearService: MasterTypeService) { }
 
     @Public()
     @Get()
-    async findAll(): Promise<GearModel[]> {
+    async findAll(): Promise<MasterModel[]> {
         return await this.gearService.findAll();
     }
     @Delete(':id')
@@ -23,7 +23,7 @@ export class EngineController {
     }
 
     @Post()
-    async create(@Body() dto: CreateGearDto): Promise<GearModel> {
+    async create(@Body() dto: CreateMasterTypeDto): Promise<MasterModel> {
         return await this.gearService.create(dto.name);
     }
 }

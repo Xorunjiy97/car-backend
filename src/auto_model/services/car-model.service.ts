@@ -15,14 +15,25 @@ export class CarModelService {
     ) { }
 
     async findAll(brandId?: number): Promise<CarModel[]> {
-        const whereCondition = brandId ? { where: { brand: { id: brandId } } } : {};
+        const whereCondition: any = {
+            deleted: false,
+            ...(brandId ? { brand: { id: brandId } } : {}),
+        };
 
         return await this.modelRepository.find({
-            ...whereCondition,
+            where: whereCondition,
             relations: [],
         });
     }
+    async softDeleted(id: number): Promise<void> {
+        const model = await this.modelRepository.findOne({ where: { id } });
+        if (!model) {
+            throw new Error("Model not found")
+        }
+        model.deleted = true
+        this.modelRepository.save(model)
 
+    }
     async create(dto: CreateCarModelDto): Promise<CarModel> {
         const brand = await this.brandRepository.findOne({ where: { id: dto.brandId } });
         if (!brand) throw new Error('Brand not found');

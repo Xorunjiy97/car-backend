@@ -8,4 +8,8 @@ export class CountryModel {
 
     @Column({ type: 'varchar', length: 255 })
     name: string;
+
+    @Column({ default: false })
+    deleted: boolean;
+
 }

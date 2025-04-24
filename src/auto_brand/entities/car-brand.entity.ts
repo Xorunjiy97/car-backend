@@ -11,4 +11,7 @@ export class CarBrand {
 
   @OneToMany(() => CarModel, (carModel) => carModel.brand, { eager: false }) // ❌ Убираем авто-загрузку
   models: CarModel[];
+
+  @Column({ default: false })
+  deleted: boolean;
 }
