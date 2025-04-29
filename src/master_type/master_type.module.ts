@@ -10,4 +10,4 @@ import { MasterTypeController } from './master_type.controller';
     controllers: [MasterTypeController],
     exports: [MasterTypeService, TypeOrmModule],
 })
-export class GearModule { }
+export class MasterModule { }

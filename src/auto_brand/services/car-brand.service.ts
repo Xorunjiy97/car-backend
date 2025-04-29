@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { CarBrand } from '../entities/car-brand.entity';
-import { CarModel } from '../../auto_model/entities/index';
+import { CarModel } from '../../auto_model/entities/auto-model.entity';
 
 
 
@@ -11,7 +11,8 @@ export class CarBrandService {
     constructor(
         @InjectRepository(CarBrand)
         private readonly brandRepository: Repository<CarBrand>,
-        // private readonly modelRepository: Repository<CarModel>,
+        @InjectRepository(CarModel)
+        private readonly modelRepository: Repository<CarModel>,
     ) { }
 
     async findAll(): Promise<CarBrand[]> {
@@ -23,22 +24,22 @@ export class CarBrandService {
         return await this.brandRepository.save(brand);
     }
     async softDelete(id: number): Promise<void> {
-        // const brand = await this.brandRepository.findOne({
-        //     where: { id },
-        //     relations: ['models'],
-        // });
+        const brand = await this.brandRepository.findOne({
+            where: { id },
+            relations: ['models'],
+        });
 
-        // if (!brand) throw new Error('Car brand not found');
+        if (!brand) throw new Error('Car brand not found');
 
-        // if (brand.models && brand.models.length > 0) {
-        //     for (const model of brand.models) {
-        //         model.deleted = true;
-        //         await this.modelRepository.save(model);
-        //     }
-        // }
+        if (brand.models && brand.models.length > 0) {
+            for (const model of brand.models) {
+                model.deleted = true;
+                await this.modelRepository.save(model);
+            }
+        }
 
 
-        // await this.brandRepository.remove(brand);
+        await this.brandRepository.remove(brand);
     }
 
 }

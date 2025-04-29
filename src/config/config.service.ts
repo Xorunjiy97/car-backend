@@ -4,7 +4,7 @@ import { TypeOrmModuleOptions } from '@nestjs/typeorm';
 
 @Injectable()
 export class AppConfigService {
-  constructor(private readonly configService: ConfigService) {}
+  constructor(private readonly configService: ConfigService) { }
 
   get swaggerPassword(): string {
     return this.configService.get<string>('SWAGGER_PASSWORD', 'password');
@@ -21,7 +21,21 @@ export class AppConfigService {
   get isProd(): boolean {
     return this.nodeEnv === 'production';
   }
+  get awsRegion(): string {
+    return this.configService.getOrThrow('AWS_REGION');
+  }
 
+  get awsAccessKeyId(): string {
+    return this.configService.getOrThrow('AWS_ACCESS_KEY_ID');
+  }
+
+  get awsSecretAccessKey(): string {
+    return this.configService.getOrThrow('AWS_SECRET_ACCESS_KEY');
+  }
+
+  get awsBucketName(): string {
+    return this.configService.getOrThrow('AWS_BUCKET_NAME');
+  }
   get globalPrefix(): string {
     return `${this.nodeEnv}/api`;
   }
