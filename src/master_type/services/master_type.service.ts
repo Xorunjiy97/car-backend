@@ -11,8 +11,11 @@ export class MasterTypeService {
     ) { }
 
     async findAll(): Promise<MasterModel[]> {
-        return await this.masterRepository.find();
-    }
+        return this.masterRepository.find({
+          where: { deleted: false },
+        });
+      }
+      
 
     async create(name: string): Promise<MasterModel> {
         const brand = this.masterRepository.create({ name });

@@ -47,12 +47,12 @@ export class CarServiceService {
             throw new Error('Invalid brand IDs')
         }
 
-        const models = await this.modelRepo.find({
-            where: { id: In(dto.modelIds) },
-        })
-        if (!models.length) {
-            throw new Error('Invalid model IDs')
-        }
+        // const models = await this.modelRepo.find({
+        //     where: { id: In(dto.modelIds) },
+        // })
+        // if (!models.length) {
+        //     throw new Error('Invalid model IDs')
+        // }
 
         const masterTypes = await this.masterRepo.find({
             where: { id: In(dto.masterTypeIds) },
@@ -80,7 +80,6 @@ export class CarServiceService {
             ...dto,
             city,
             brands,
-            models,
             masterTypes,
             avatar: avatarUrl,
             photos: photoUrls,
@@ -92,7 +91,7 @@ export class CarServiceService {
 
     async findAll(): Promise<CarServiceEntity[]> {
         return this.repo.find({
-            relations: ['city', 'brands', 'models', 'masterTypes'],
+            relations: ['city', 'brands', 'masterTypes'],
         })
     }
 }

@@ -11,7 +11,9 @@ export class BodyService {
     ) { }
 
     async findAll(): Promise<BodyModel[]> {
-        return await this.bodyRepository.find();
+        return await this.bodyRepository.find({
+            where: { deleted: false },
+          });
     }
 
     async create(name: string): Promise<BodyModel> {

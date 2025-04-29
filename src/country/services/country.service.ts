@@ -11,7 +11,9 @@ export class CountryService {
     ) { }
 
     async findAll(): Promise<CountryModel[]> {
-        return await this.countryRepository.find();
+        return await this.countryRepository.find({
+            where: { deleted: false },
+          });
     }
 
     async create(name: string): Promise<CountryModel> {

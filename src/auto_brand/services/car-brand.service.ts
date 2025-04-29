@@ -16,8 +16,12 @@ export class CarBrandService {
     ) { }
 
     async findAll(): Promise<CarBrand[]> {
-        return await this.brandRepository.find({ relations: ['models'] });
-    }
+        return await this.brandRepository.find({
+          where: { deleted: false },
+          relations: ['models'],
+        });
+      }
+      
 
     async create(name: string): Promise<CarBrand> {
         const brand = this.brandRepository.create({ name });

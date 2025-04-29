@@ -11,7 +11,9 @@ export class GearService {
     ) { }
 
     async findAll(): Promise<GearModel[]> {
-        return await this.gearRepository.find();
+        return await this.gearRepository.find({
+            where: { deleted: false },
+          });
     }
 
     async create(name: string): Promise<GearModel> {

@@ -11,7 +11,9 @@ export class EngineService {
     ) { }
 
     async findAll(): Promise<EngineModel[]> {
-        return await this.engineService.find();
+        return await this.engineService.find({
+            where: { deleted: false },
+          });
     }
 
     async create(name: string): Promise<EngineModel> {

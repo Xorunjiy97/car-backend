@@ -2,40 +2,61 @@ import { IsString, IsInt, IsArray, IsOptional, ArrayNotEmpty } from 'class-valid
 import { ApiProperty } from '@nestjs/swagger';
 
 export class CreateCarServiceDto {
+    @ApiProperty({ example: 1, description: 'ID города' })
     @IsInt()
-    cityId: number
+    cityId: number;
 
+    @ApiProperty({ example: [1, 2], description: 'ID брендов автомобилей' })
     @IsArray()
     @ArrayNotEmpty()
     @IsInt({ each: true })
-    brandIds: number[]
+    brandIds: number[];
 
+    @ApiProperty({ example: [1, 3], description: 'ID типов мастеров' })
     @IsArray()
     @ArrayNotEmpty()
     @IsInt({ each: true })
-    modelIds: number[]
+    masterTypeIds: number[];
 
-    @IsArray()
-    @ArrayNotEmpty()
-    @IsInt({ each: true })
-    masterTypeIds: number[]
-
+    @ApiProperty({ example: 'г. Баку, ул. Нефтяников, 12', description: 'Адрес сервиса' })
     @IsString()
-    address: string
+    address: string;
 
+    @ApiProperty({ example: '+994501112233', description: 'Мобильный номер' })
     @IsString()
-    contactInfo: string
+    mobile: string;
 
+    @ApiProperty({ example: '+994501112233', description: 'WhatsApp номер', required: false })
     @IsOptional()
     @IsString()
-    videoLink?: string
+    whatsapp?: string;
 
+    @ApiProperty({ example: '@your_service', description: 'Telegram username', required: false })
+    @IsOptional()
+    @IsString()
+    telegram?: string;
 
-    @ApiProperty({ type: 'string', format: 'binary', required: false, description: 'Главное фото (аватар)' })
+    @ApiProperty({ example: 'https://yourbucket.s3.amazonaws.com/video.mp4', description: 'Ссылка на видео', required: false })
+    @IsOptional()
+    @IsString()
+    videoLink?: string;
+
+    @ApiProperty({
+        type: 'string',
+        format: 'binary',
+        required: false,
+        description: 'Главное фото (аватар)',
+    })
     @IsOptional()
     avatar?: string;
 
-    @ApiProperty({ type: 'string', format: 'binary', isArray: true, required: false, description: 'Фотографии машины' })
+    @ApiProperty({
+        type: 'string',
+        format: 'binary',
+        isArray: true,
+        required: false,
+        description: 'Фотографии сервиса',
+    })
     @IsOptional()
     @IsArray()
     photos?: string[];

@@ -18,6 +18,7 @@ import { GearModule } from './gear_box/gear.module';
 import { CarModule } from './cars_auction/car.module';
 import { MasterModule } from './master_type/master_type.module'
 import { CarServiceModule } from './services_cars/services_car.module'
+import { CityModule } from './city/city.module';
 
 
 const passportModule = PassportModule.register({ defaultStrategy: 'jwt' });
@@ -38,6 +39,7 @@ const passportModule = PassportModule.register({ defaultStrategy: 'jwt' });
     CountryModule,
     CarModule,
     MasterModule,
+    CityModule,
     CarServiceModule
   ],
   providers: [{ provide: APP_GUARD, useClass: JwtAuthGuard }],
