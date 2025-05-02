@@ -6,8 +6,7 @@ import { CarServiceService } from './services/services_car.service'
 import { CarServiceEntity } from './entities/service_cars.entity'
 
 import { CountryModel } from '../country/entities/country.entity';
-// import { CarBrandEntity } from '../auto_brand/entities/car-brand.entity'
-// import { CarModelEntity } from '../auto_model/entities/car-model.entity'
+
 import { MasterModel } from '../master_type/entities/master_type.entity'
 import { CarBrand } from '../auto_brand/entities/car-brand.entity';
 import { CarModel } from '../auto_model/entities/auto-model.entity';

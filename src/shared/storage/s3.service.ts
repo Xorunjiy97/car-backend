@@ -15,7 +15,7 @@ export class StorageService {
                 secretAccessKey: this.appConfigService.awsSecretAccessKey,
             },
         });
-
+        console.log(this.appConfigService.awsBucketName)
         this.bucket = this.appConfigService.awsBucketName;
     }
 
@@ -31,6 +31,7 @@ export class StorageService {
 
         await this.s3Client.send(command);
 
-        return `https://${this.bucket}.s3.${this.appConfigService.awsRegion}.amazonaws.com/${key}`;
+        const region = this.appConfigService.awsRegion
+        return `https://${this.bucket}.s3.${region}.amazonaws.com/${key}`;
     }
 }

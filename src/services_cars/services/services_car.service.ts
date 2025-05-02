@@ -9,7 +9,8 @@ import { CarServiceEntity } from '../entities/service_cars.entity'
 import { CreateCarServiceDto } from '../dto/create-service-car.dto'
 import { In } from 'typeorm'
 import { StorageService } from '../../shared/storage/s3.service'
-import { StorageModule } from '../../shared/storage/storage.module'
+import { ForbiddenException } from '@nestjs/common'
+import { User } from 'src/users/entities/user.entity';
 
 @Injectable()
 export class CarServiceService {
@@ -87,6 +88,54 @@ export class CarServiceService {
         })
 
         return this.repo.save(service)
+    }
+    async update(
+        id: number,
+        dto: CreateCarServiceDto,
+        user: User,
+        avatarFile?: Express.Multer.File,
+        photoFiles?: Express.Multer.File[],
+        videoFile?: Express.Multer.File,
+    ): Promise<CarServiceEntity> {
+        const service = await this.repo.findOne({
+            where: { id },
+            relations: ['createdBy'],
+        });
+
+        if (!service) {
+            throw new BadRequestException('Car service not found');
+        }
+
+        // 🔥 Проверяем право редактирования
+        if (service.createdBy.id !== user.id) {
+            throw new ForbiddenException('You are not allowed to edit this service');
+        }
+
+        // ✅ Сохраняем новые файлы если есть
+        let avatarUrl = service.avatar;
+        if (avatarFile) {
+            avatarUrl = `/uploads/car-services/${avatarFile.filename}`;
+        }
+
+        let photoUrls = service.photos || [];
+        if (photoFiles && photoFiles.length) {
+            photoUrls = photoFiles.map((file) => `/uploads/car-services/${file.filename}`);
+        }
+
+        let videoUrl = service.videoLink;
+        if (videoFile) {
+            videoUrl = await this.storageService.uploadVideo(videoFile);
+        }
+
+        // ✅ Обновляем поля
+        Object.assign(service, {
+            ...dto,
+            avatar: avatarUrl,
+            photos: photoUrls,
+            videoLink: videoUrl,
+        });
+
+        return this.repo.save(service);
     }
 
     async findAll(): Promise<CarServiceEntity[]> {

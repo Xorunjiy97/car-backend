@@ -1,22 +1,32 @@
 import { IsString, IsInt, IsArray, IsOptional, ArrayNotEmpty } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
+import { Transform } from 'class-transformer'
 
 export class CreateCarServiceDto {
+    @ApiProperty({ example: 'г. Баку, ул. Нефтяников, 12', description: 'Адрес сервиса' })
+    @IsString()
+    name: string;
+
     @ApiProperty({ example: 1, description: 'ID города' })
     @IsInt()
     cityId: number;
 
-    @ApiProperty({ example: [1, 2], description: 'ID брендов автомобилей' })
+    @Transform(({ value }) => JSON.parse(value))
     @IsArray()
     @ArrayNotEmpty()
     @IsInt({ each: true })
-    brandIds: number[];
-
-    @ApiProperty({ example: [1, 3], description: 'ID типов мастеров' })
+    brandIds: number[]
+  
+    @ApiProperty({
+      example: [1, 3],
+      description: 'ID типов мастеров (в JSON формате в FormData)',
+      type: [Number],
+    })
+    @Transform(({ value }) => JSON.parse(value))
     @IsArray()
     @ArrayNotEmpty()
     @IsInt({ each: true })
-    masterTypeIds: number[];
+    masterTypeIds: number[]
 
     @ApiProperty({ example: 'г. Баку, ул. Нефтяников, 12', description: 'Адрес сервиса' })
     @IsString()

@@ -11,8 +11,17 @@ import * as express from 'express'
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  app.useGlobalPipes(new ValidationPipe({ transform: true }));
-  app.useGlobalInterceptors(new ClassSerializerInterceptor(app.get(Reflector)));
+  app.useGlobalPipes(
+    new ValidationPipe({
+      transform: true,
+      transformOptions: {
+        enableImplicitConversion: true, // ← ВКЛЮЧАЕМ ЭТО
+      },
+      whitelist: true, // (опционально, чтобы игнорировать лишние поля)
+      forbidNonWhitelisted: false, // (опционально — если не хочешь падать на лишних полях)
+    }),
+  );
+    app.useGlobalInterceptors(new ClassSerializerInterceptor(app.get(Reflector)));
 
   const configService = app.get(AppConfigService);
   const port = configService.port;
