@@ -38,12 +38,12 @@ export class CarService {
     @InjectRepository(GearModel)
     private readonly gearRepository: Repository<GearModel>,
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
-  ) {}
+  ) { }
 
   async findAll(filters: GetCarListDto): Promise<Pagination<Car>> {
     const { page, limit } = filters
-    console.log(filters,'filters')
-  
+    console.log(filters, 'filters')
+
     const query = this.carRepository.createQueryBuilder('car')
       .leftJoinAndSelect('car.brand', 'brand')
       .leftJoinAndSelect('car.model', 'model')
@@ -51,37 +51,37 @@ export class CarService {
       .leftJoinAndSelect('car.engine_type', 'engine')
       .leftJoinAndSelect('car.body_type', 'body')
       .leftJoinAndSelect('car.gear_box', 'gear')
-  
+
     if (filters.brandId) query.andWhere('car.brand = :brandId', { brandId: filters.brandId })
-   
-      if (filters.countryId?.length) {
-        query.andWhere('car.country IN (:...countryIds)', { countryIds: filters.countryId });
-      }
-      if (filters.engineTypeId?.length) {
-        query.andWhere('car.engine_type IN (:...engineTypeIds)', { engineTypeIds: filters.engineTypeId });
-      }
-      if (filters.bodyTypeId?.length) {
-        query.andWhere('car.body_type IN (:...bodyTypeIds)', { bodyTypeIds: filters.bodyTypeId });
-      }
-      if (filters.gearBoxId?.length) {
-        query.andWhere('car.gear_box IN (:...gearBoxIds)', { gearBoxIds: filters.gearBoxId });
-      }
-      
-  
-    if (filters.priceFromMin ) query.andWhere('car.priceFrom >= :priceFromMin', { priceFromMin: filters.priceFromMin })
-    if (filters.priceFromMax ) query.andWhere('car.priceFrom <= :priceFromMax', { priceFromMax: filters.priceFromMax })
-  
-    if (filters.mileageMin ) query.andWhere('car.mileage >= :mileageMin', { mileageMin: filters.mileageMin })
-    if (filters.mileageMax ) query.andWhere('car.mileage <= :mileageMax', { mileageMax: filters.mileageMax })
-  
+
+    if (filters.countryId?.length) {
+      query.andWhere('car.country IN (:...countryIds)', { countryIds: filters.countryId });
+    }
+    if (filters.engineTypeId?.length) {
+      query.andWhere('car.engine_type IN (:...engineTypeIds)', { engineTypeIds: filters.engineTypeId });
+    }
+    if (filters.bodyTypeId?.length) {
+      query.andWhere('car.body_type IN (:...bodyTypeIds)', { bodyTypeIds: filters.bodyTypeId });
+    }
+    if (filters.gearBoxId?.length) {
+      query.andWhere('car.gear_box IN (:...gearBoxIds)', { gearBoxIds: filters.gearBoxId });
+    }
+
+
+    if (filters.priceFromMin) query.andWhere('car.priceFrom >= :priceFromMin', { priceFromMin: filters.priceFromMin })
+    if (filters.priceFromMax) query.andWhere('car.priceFrom <= :priceFromMax', { priceFromMax: filters.priceFromMax })
+
+    if (filters.mileageMin) query.andWhere('car.mileage >= :mileageMin', { mileageMin: filters.mileageMin })
+    if (filters.mileageMax) query.andWhere('car.mileage <= :mileageMax', { mileageMax: filters.mileageMax })
+
     if (filters.yearMin) query.andWhere('car.year >= :yearMin', { yearMin: filters.yearMin })
     if (filters.yearMax) query.andWhere('car.year <= :yearMax', { yearMax: filters.yearMax })
-  
+
     const [items, total] = await query
       .skip((page - 1) * limit)
       .take(limit)
       .getManyAndCount()
-  
+
     return {
       items,
       meta: {
@@ -93,7 +93,7 @@ export class CarService {
       },
     }
   }
-  
+
 
   async findOne(id: number): Promise<Car> {
     return this.carRepository.findOne({
@@ -109,31 +109,31 @@ export class CarService {
     });
   }
 
-   
+
   async remove(id: number): Promise<{ message: string }> {
     const car = await this.carRepository.findOne({ where: { id } });
-  
+
     if (!car) {
       throw new Error('Car not found');
     }
-  
+
     // ✅ Удалим связанные фотографии (локально, если есть)
     const allPhotoPaths = [...(car.photos || []), car.avatar].filter(Boolean);
-  
+
     for (const photoPath of allPhotoPaths) {
       const fileName = photoPath.split('/').pop();
       const fullPath = path.join(__dirname, '../../../uploads/cars', fileName);
-  
+
       if (fs.existsSync(fullPath)) {
         fs.unlinkSync(fullPath);
       }
     }
-  
+
     await this.carRepository.remove(car);
-  
+
     return { message: `Автомобиль с ID ${id} удалён` };
   }
-  
+
   async create(
     dto: CreateCarDto,
     avatarFile: Express.Multer.File,
@@ -179,6 +179,7 @@ export class CarService {
     if (!gear) {
       throw new Error('Invalid gear box ID');
     }
+    console.log(avatarFile, 'avatarFile')
 
     // ✅ Сохраняем аватар и фотографии
     const avatarUrl = avatarFile

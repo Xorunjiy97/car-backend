@@ -27,16 +27,12 @@ export class CarServiceService {
         private readonly masterRepo: Repository<MasterModel>,
         private readonly storageService: StorageService,
     ) { }
-
     async create(
         dto: CreateCarServiceDto,
         avatarFile: Express.Multer.File,
         photoFiles: Express.Multer.File[],
-        videoFile?: Express.Multer.File,
     ): Promise<CarServiceEntity> {
-        const city = await this.cityRepo.findOne({
-            where: { id: dto.cityId },
-        })
+        const city = await this.cityRepo.findOne({ where: { id: dto.cityId } })
         if (!city) {
             throw new Error('Invalid city ID')
         }
@@ -48,13 +44,6 @@ export class CarServiceService {
             throw new Error('Invalid brand IDs')
         }
 
-        // const models = await this.modelRepo.find({
-        //     where: { id: In(dto.modelIds) },
-        // })
-        // if (!models.length) {
-        //     throw new Error('Invalid model IDs')
-        // }
-
         const masterTypes = await this.masterRepo.find({
             where: { id: In(dto.masterTypeIds) },
         })
@@ -62,20 +51,11 @@ export class CarServiceService {
             throw new Error('Invalid master type IDs')
         }
 
-        // ✅ Сохраняем аватар
         const avatarUrl = avatarFile ? `/uploads/car-services/${avatarFile.filename}` : null
-        // ✅ Сохраняем фото
+
         const photoUrls = Array.isArray(photoFiles)
             ? photoFiles.map((file) => `/uploads/car-services/${file.filename}`)
             : []
-
-        // ✅ Сохраняем видео
-        let videoUrl: string | null = null
-        if (videoFile) {
-            // тут должна быть загрузка в облачное хранилище
-            // например:
-            videoUrl = await this.storageService.uploadVideo(videoFile)
-        }
 
         const service = this.repo.create({
             ...dto,
@@ -84,11 +64,20 @@ export class CarServiceService {
             masterTypes,
             avatar: avatarUrl,
             photos: photoUrls,
-            videoLink: videoUrl,
+            videoLink: null, // ← пока пусто, обновится позже
         })
 
         return this.repo.save(service)
     }
+    async uploadVideoToS3(serviceId: number, videoFile: Express.Multer.File) {
+        const videoUrl = await this.storageService.uploadVideo(videoFile)
+
+        await this.repo.update(serviceId, { videoLink: videoUrl })
+
+        return { success: true, url: videoUrl }
+    }
+
+
     async update(
         id: number,
         dto: CreateCarServiceDto,
@@ -136,6 +125,18 @@ export class CarServiceService {
         });
 
         return this.repo.save(service);
+    }
+    async findOne(id: number) {
+        const service = await this.repo.findOne({
+            where: { id },
+            relations: ['city', 'brands', 'masterTypes'], // добавь нужные связи
+        })
+
+        if (!service) {
+            throw new ForbiddenException(`Service with id ${id} not found`)
+        }
+
+        return service
     }
 
     async findAll(): Promise<CarServiceEntity[]> {
