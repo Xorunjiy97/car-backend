@@ -17,7 +17,7 @@ import {
 } from '@nestjs/swagger';
 import { User } from 'src/users/entities/user.entity';
 import { Public } from '../auth/decorators/can-be-public.decorator'; // ✅ Импортируем Public
-import { multerConfig } from 'multer.config';
+import { multerConfigServices } from 'multer.config';
 
 @ApiTags('car-services')
 @Controller('car-services')
@@ -31,7 +31,7 @@ export class CarServiceController {
                 { name: 'avatar', maxCount: 1 },
                 { name: 'photos', maxCount: 10 },
             ],
-            multerConfig, // твой конфиг с diskStorage
+            multerConfigServices, // твой конфиг с diskStorage
         ),
     )
     async create(

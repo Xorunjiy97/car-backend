@@ -46,6 +46,11 @@ export class CreateCarServiceDto {
     @IsString()
     telegram?: string;
 
+    @ApiProperty({ example: '@your_service', description: 'Instagram username', required: false })
+    @IsOptional()
+    @IsString()
+    instagram?: string;
+
     @ApiProperty({ example: 'https://yourbucket.s3.amazonaws.com/video.mp4', description: 'Ссылка на видео', required: false })
     @IsOptional()
     @IsString()

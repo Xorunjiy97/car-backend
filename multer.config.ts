@@ -12,3 +12,13 @@ export const multerConfig = {
     },
   }),
 };
+export const multerConfigServices = {
+  storage: diskStorage({
+    destination: './uploads/car-services', // Локальное хранилище фото
+    filename: (req, file, cb) => {
+      const fileExtName = path.extname(file.originalname);
+      const randomName = uuidv4();
+      cb(null, `${randomName}${fileExtName}`);
+    },
+  }),
+};
