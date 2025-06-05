@@ -7,7 +7,10 @@ import {
     Get,
     Patch,
     Param,
-    BadRequestException
+    BadRequestException,
+    UseGuards,
+    Query,
+    Req
 } from '@nestjs/common'
 import { CarServiceService } from './services/services_car.service'
 import { CreateCarServiceDto } from './dto/create-service-car.dto'
@@ -18,6 +21,9 @@ import {
 import { User } from 'src/users/entities/user.entity';
 import { Public } from '../auth/decorators/can-be-public.decorator'; // ✅ Импортируем Public
 import { multerConfigServices } from 'multer.config';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { Request } from 'express'
+import { CarServiceFiltersDto } from './dto/car-service-filters.dto';
 
 @ApiTags('car-services')
 @Controller('car-services')
@@ -58,6 +64,19 @@ export class CarServiceController {
         return this.carService.uploadVideoToS3(id, videoFile)
     }
 
+    @UseGuards(JwtAuthGuard)
+    @Get('is-owner')
+    async isOwner(@Query('id') id: number, @Req() req: Request) {
+        if (!id) {
+            throw new BadRequestException('Service ID is required')
+        }
+
+        const user = req.user as any // типизируй под свою сущность пользователя
+
+        const isOwner = await this.carService.isCreatedByUser(id, user)
+        return { isOwner }
+    }
+
 
     @Public()
     @Get(':id')
@@ -83,7 +102,8 @@ export class CarServiceController {
     }
     @Public()
     @Get()
-    async findAll() {
-        return this.carService.findAll()
+    @Get()
+    findAll(@Query() filters: CarServiceFiltersDto) {
+        return this.carService.findAll(filters)
     }
 }

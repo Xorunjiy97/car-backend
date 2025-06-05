@@ -43,6 +43,9 @@ export class CarServiceEntity {
 
     @Column({ type: 'varchar', length: 255, nullable: true })
     telegram: string;
+    
+    @Column({ type: 'varchar', length: 255, nullable: true })
+    instagram: string;
 
     @Column({ nullable: true })
     videoLink: string;

@@ -11,6 +11,7 @@ import { In } from 'typeorm'
 import { StorageService } from '../../shared/storage/s3.service'
 import { ForbiddenException } from '@nestjs/common'
 import { User } from 'src/users/entities/user.entity';
+import { CarServiceFiltersDto } from '../dto/car-service-filters.dto';
 
 @Injectable()
 export class CarServiceService {
@@ -77,6 +78,20 @@ export class CarServiceService {
         return { success: true, url: videoUrl }
     }
 
+    async isCreatedByUser(serviceId: number, user: User): Promise<boolean> {
+        const service = await this.repo.findOne({
+            where: { id: serviceId },
+            relations: ['createdBy'],
+        })
+
+        if (!service) {
+            throw new BadRequestException('Service not found')
+        }
+
+        return service.createdBy.id === user.id
+    }
+
+
 
     async update(
         id: number,
@@ -139,9 +154,27 @@ export class CarServiceService {
         return service
     }
 
-    async findAll(): Promise<CarServiceEntity[]> {
-        return this.repo.find({
-            relations: ['city', 'brands', 'masterTypes'],
-        })
+    async findAll(filters: CarServiceFiltersDto) {
+        const query = this.repo.createQueryBuilder('service')
+            .leftJoinAndSelect('service.city', 'city')
+            .leftJoinAndSelect('service.brands', 'brand')
+            .leftJoinAndSelect('service.masterTypes', 'masterType')
+            .leftJoinAndSelect('service.createdBy', 'createdBy')
+
+        if (filters.cityId) {
+            query.andWhere('city.id = :cityId', { cityId: filters.cityId })
+        }
+
+
+
+        if (filters.brandIds && filters.brandIds.length > 0) {
+            query.andWhere('brand.id IN (:...brandIds)', { brandIds: filters.brandIds })
+        }
+
+        if (filters.masterTypeIds && filters.masterTypeIds.length > 0) {
+            query.andWhere('masterType.id IN (:...masterTypeIds)', { masterTypeIds: filters.masterTypeIds })
+        }
+
+        return query.getMany()
     }
 }
