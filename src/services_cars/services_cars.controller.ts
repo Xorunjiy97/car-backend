@@ -24,6 +24,7 @@ import { multerConfigServices } from 'multer.config';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { Request } from 'express'
 import { CarServiceFiltersDto } from './dto/car-service-filters.dto';
+import { AuthGuard } from '@nestjs/passport';
 
 @ApiTags('car-services')
 @Controller('car-services')
@@ -44,13 +45,33 @@ export class CarServiceController {
         @Body() dto: CreateCarServiceDto,
         @UploadedFiles()
         files: { avatar?: Express.Multer.File[]; photos?: Express.Multer.File[] },
+        @Req() req: Request,
     ) {
         const avatarFile = files.avatar?.[0]
         const photoFiles = files.photos || []
+        const user = req.user as any
 
-        return this.carService.create(dto, avatarFile, photoFiles)
+        return this.carService.create(dto, avatarFile, photoFiles, { id: user.sub })
     }
+
+    @Patch('moderate/:id')
+    @UseGuards(JwtAuthGuard)
+    async moderateService(
+        @Param('id') id: number,
+        @Req() req: Request,
+    ) {
+        return this.carService.moderateService(id, req.user)
+    }
+
+    @Get('no-moderated')
+    @UseGuards(JwtAuthGuard)
+    async findAllNoModerated(@Req() req: Request) {
+        const user = req.user
+        return this.carService.findAllNoModerated(user)
+    }
+
     @Post(':id/upload-video')
+    @UseGuards(JwtAuthGuard)
     @UseInterceptors(
         FileFieldsInterceptor([{ name: 'video', maxCount: 1 }]) // без multerConfig
     )
@@ -59,6 +80,7 @@ export class CarServiceController {
         @UploadedFiles() files: { video?: Express.Multer.File[] },
     ) {
         const videoFile = files.video?.[0]
+
         if (!videoFile) throw new BadRequestException('Видео не загружено')
 
         return this.carService.uploadVideoToS3(id, videoFile)
@@ -73,7 +95,7 @@ export class CarServiceController {
 
         const user = req.user as any // типизируй под свою сущность пользователя
 
-        const isOwner = await this.carService.isCreatedByUser(id, user)
+        const isOwner = await this.carService.isCreatedByUser(id, { id: user.sub })
         return { isOwner }
     }
 
@@ -100,10 +122,11 @@ export class CarServiceController {
             files.video?.[0],
         );
     }
+
     @Public()
     @Get()
-    @Get()
-    findAll(@Query() filters: CarServiceFiltersDto) {
-        return this.carService.findAll(filters)
+    async findAll(@Query() query: CarServiceFiltersDto) {
+        console.log(query, 'query')
+        return this.carService.findAll(query)
     }
 }

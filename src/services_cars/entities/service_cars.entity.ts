@@ -49,6 +49,9 @@ export class CarServiceEntity {
 
     @Column({ nullable: true })
     videoLink: string;
+    
+    @Column({ default: false ,nullable:true})
+    moderated: boolean
 
     @Column({ type: 'text', array: true, nullable: true })
     photos: string[];

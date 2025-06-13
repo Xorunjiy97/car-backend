@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException } from '@nestjs/common'
+import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
 import { CarBrand } from '../../auto_brand/entities/car-brand.entity';
@@ -32,6 +32,7 @@ export class CarServiceService {
         dto: CreateCarServiceDto,
         avatarFile: Express.Multer.File,
         photoFiles: Express.Multer.File[],
+        user: any
     ): Promise<CarServiceEntity> {
         const city = await this.cityRepo.findOne({ where: { id: dto.cityId } })
         if (!city) {
@@ -65,6 +66,8 @@ export class CarServiceService {
             masterTypes,
             avatar: avatarUrl,
             photos: photoUrls,
+            moderated: false,
+            createdBy: user.id,
             videoLink: null, // ← пока пусто, обновится позже
         })
 
@@ -73,12 +76,13 @@ export class CarServiceService {
     async uploadVideoToS3(serviceId: number, videoFile: Express.Multer.File) {
         const videoUrl = await this.storageService.uploadVideo(videoFile)
 
-        await this.repo.update(serviceId, { videoLink: videoUrl })
+
+        await this.repo.update(serviceId, { videoLink: videoUrl, moderated: false, })
 
         return { success: true, url: videoUrl }
     }
 
-    async isCreatedByUser(serviceId: number, user: User): Promise<boolean> {
+    async isCreatedByUser(serviceId: number, user: any): Promise<boolean> {
         const service = await this.repo.findOne({
             where: { id: serviceId },
             relations: ['createdBy'],
@@ -87,6 +91,7 @@ export class CarServiceService {
         if (!service) {
             throw new BadRequestException('Service not found')
         }
+        console.log(service, 'service user')
 
         return service.createdBy.id === user.id
     }
@@ -137,6 +142,7 @@ export class CarServiceService {
             avatar: avatarUrl,
             photos: photoUrls,
             videoLink: videoUrl,
+            moderated: false,
         });
 
         return this.repo.save(service);
@@ -153,6 +159,28 @@ export class CarServiceService {
 
         return service
     }
+    async moderateService(id: number, user: any): Promise<CarServiceEntity> {
+        if (user.role !== 'ADMIN') {
+            throw new ForbiddenException('Access denied')
+        }
+
+        const service = await this.repo.findOne({ where: { id } })
+        if (!service) {
+            throw new NotFoundException('Service not found')
+        }
+
+        service.moderated = true
+        return this.repo.save(service)
+    }
+    async findAllNoModerated(user: any) {
+        if (user && user.role !== 'ADMIN' || !user) {
+            throw new ForbiddenException('Access denied')
+        }
+        const query = this.repo.createQueryBuilder('service')
+            .where('service.moderated = :moderated', { moderated: false })
+
+        return query.getMany()
+    }
 
     async findAll(filters: CarServiceFiltersDto) {
         const query = this.repo.createQueryBuilder('service')
@@ -160,6 +188,7 @@ export class CarServiceService {
             .leftJoinAndSelect('service.brands', 'brand')
             .leftJoinAndSelect('service.masterTypes', 'masterType')
             .leftJoinAndSelect('service.createdBy', 'createdBy')
+            .where('service.moderated = :moderated', { moderated: true })
 
         if (filters.cityId) {
             query.andWhere('city.id = :cityId', { cityId: filters.cityId })
@@ -170,6 +199,8 @@ export class CarServiceService {
         if (filters.brandIds && filters.brandIds.length > 0) {
             query.andWhere('brand.id IN (:...brandIds)', { brandIds: filters.brandIds })
         }
+
+        console.log(filters, 'filters')
 
         if (filters.masterTypeIds && filters.masterTypeIds.length > 0) {
             query.andWhere('masterType.id IN (:...masterTypeIds)', { masterTypeIds: filters.masterTypeIds })
