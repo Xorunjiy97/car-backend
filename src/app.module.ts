@@ -10,6 +10,8 @@ import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import { AutoBrandModule } from './auto_brand/auto-brand.module';
+import { AutoBrandModuleIternal } from './auta_brands_iternal_cars/car-brand.module';
+
 import { AutoModelModule } from './auto_model/auto-model.module';
 import { CountryModule } from './country/country.module';
 import { EngineModule } from './engine_type/engine.module';
@@ -19,6 +21,8 @@ import { CarModule } from './cars_auction/car.module';
 import { MasterModule } from './master_type/master_type.module'
 import { CarServiceModule } from './services_cars/services_car.module'
 import { CityModule } from './city/city.module';
+import { AutoModelIternalModule } from './auto_model_iternal/auto-model.module'
+import { AutoModeClasseslIternalModule } from './auto_model_iternal_classes/auto-model.module';
 
 
 const passportModule = PassportModule.register({ defaultStrategy: 'jwt' });
@@ -40,7 +44,10 @@ const passportModule = PassportModule.register({ defaultStrategy: 'jwt' });
     CarModule,
     MasterModule,
     CityModule,
-    CarServiceModule
+    CarServiceModule,
+    AutoBrandModuleIternal,
+    AutoModelIternalModule,
+    AutoModeClasseslIternalModule
   ],
   providers: [{ provide: APP_GUARD, useClass: JwtAuthGuard }],
   controllers: [AppController],
