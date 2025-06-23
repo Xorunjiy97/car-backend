@@ -10,7 +10,8 @@ import {
     BadRequestException,
     UseGuards,
     Query,
-    Req
+    Req,
+    ParseIntPipe
 } from '@nestjs/common'
 import { CarServiceService } from './services/services_car.service'
 import { CreateCarServiceDto } from './dto/create-service-car.dto'
@@ -25,6 +26,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { Request } from 'express'
 import { CarServiceFiltersDto } from './dto/car-service-filters.dto';
 import { AuthGuard } from '@nestjs/passport';
+import { UpdateServiceDto } from './dto/updete-service.dto';
 
 @ApiTags('car-services')
 @Controller('car-services')
@@ -107,12 +109,26 @@ export class CarServiceController {
         return await this.carService.findOne(id);
     }
     @Patch(':id')
+    @UseInterceptors(
+        FileFieldsInterceptor([
+            { name: 'avatar', maxCount: 1 },
+            { name: 'photos', maxCount: 10 },
+            { name: 'video', maxCount: 1 },
+        ]),
+    )
     async update(
-        @Param('id') id: number,
-        @Body() dto: CreateCarServiceDto,
-        @UploadedFiles() files,
-        user: User,
+        @Param('id', ParseIntPipe) id: number,
+        @Body() dto: UpdateServiceDto,
+        @UploadedFiles()
+        files: {
+            avatar?: Express.Multer.File[]
+            photos?: Express.Multer.File[]
+            video?: Express.Multer.File[]
+        },
+        @Req() req: Request            // ваша декоратор-обёртка
     ) {
+        let user = req.user as any
+        user.id = user.sub
         return this.carService.update(
             id,
             dto,
@@ -120,7 +136,7 @@ export class CarServiceController {
             files.avatar?.[0],
             files.photos,
             files.video?.[0],
-        );
+        )
     }
 
     @Public()
@@ -130,3 +146,4 @@ export class CarServiceController {
         return this.carService.findAll(query)
     }
 }
+

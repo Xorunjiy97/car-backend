@@ -12,6 +12,7 @@ import { StorageService } from '../../shared/storage/s3.service'
 import { ForbiddenException } from '@nestjs/common'
 import { User } from 'src/users/entities/user.entity';
 import { CarServiceFiltersDto } from '../dto/car-service-filters.dto';
+import { UpdateServiceDto } from '../dto/updete-service.dto';
 
 @Injectable()
 export class CarServiceService {
@@ -100,7 +101,7 @@ export class CarServiceService {
 
     async update(
         id: number,
-        dto: CreateCarServiceDto,
+        dto: UpdateServiceDto,
         user: User,
         avatarFile?: Express.Multer.File,
         photoFiles?: Express.Multer.File[],
@@ -114,6 +115,8 @@ export class CarServiceService {
         if (!service) {
             throw new BadRequestException('Car service not found');
         }
+
+        console.log(service.createdBy.id, user.id, 'service.createdBy.id')
 
         // 🔥 Проверяем право редактирования
         if (service.createdBy.id !== user.id) {
