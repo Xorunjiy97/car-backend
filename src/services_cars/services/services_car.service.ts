@@ -103,9 +103,9 @@ export class CarServiceService {
         id: number,
         dto: UpdateServiceDto,
         user: User,
-        avatarFile?: Express.Multer.File,
-        photoFiles?: Express.Multer.File[],
-        videoFile?: Express.Multer.File,
+        avatarFile: Express.Multer.File,
+        photoFiles: Express.Multer.File[],
+
     ): Promise<CarServiceEntity> {
         const service = await this.repo.findOne({
             where: { id },
@@ -128,23 +128,28 @@ export class CarServiceService {
         if (avatarFile) {
             avatarUrl = `/uploads/car-services/${avatarFile.filename}`;
         }
+        //  const photoUrls = Array.isArray(photoFiles)
+        //     ? photoFiles.map((file) => `/uploads/car-services/${file.filename}`)
+        //     : []
 
-        let photoUrls = service.photos || [];
+        let photoUrls = [];
         if (photoFiles && photoFiles.length) {
-            photoUrls = photoFiles.map((file) => `/uploads/car-services/${file.filename}`);
+            photoUrls = Array.isArray(photoFiles)
+                ? photoFiles.map((file) => `/uploads/car-services/${file.filename}`)
+                : []
         }
 
-        let videoUrl = service.videoLink;
-        if (videoFile) {
-            videoUrl = await this.storageService.uploadVideo(videoFile);
-        }
+        // let videoUrl = service.videoLink;
+        // if (videoFile) {
+        //     videoUrl = await this.storageService.uploadVideo(videoFile);
+        // }
 
         // ✅ Обновляем поля
         Object.assign(service, {
             ...dto,
             avatar: avatarUrl,
             photos: photoUrls,
-            videoLink: videoUrl,
+            // videoLink: videoUrl,
             moderated: false,
         });
 

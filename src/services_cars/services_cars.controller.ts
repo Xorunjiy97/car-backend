@@ -110,21 +110,19 @@ export class CarServiceController {
     }
     @Patch(':id')
     @UseInterceptors(
-        FileFieldsInterceptor([
-            { name: 'avatar', maxCount: 1 },
-            { name: 'photos', maxCount: 10 },
-            { name: 'video', maxCount: 1 },
-        ]),
+        FileFieldsInterceptor(
+            [
+                { name: 'avatar', maxCount: 1 },
+                { name: 'photos', maxCount: 10 },
+            ],
+            multerConfigServices, // твой конфиг с diskStorage
+        ),
     )
     async update(
         @Param('id', ParseIntPipe) id: number,
         @Body() dto: UpdateServiceDto,
         @UploadedFiles()
-        files: {
-            avatar?: Express.Multer.File[]
-            photos?: Express.Multer.File[]
-            video?: Express.Multer.File[]
-        },
+        files: { avatar?: Express.Multer.File[]; photos?: Express.Multer.File[] },
         @Req() req: Request            // ваша декоратор-обёртка
     ) {
         let user = req.user as any
@@ -135,7 +133,6 @@ export class CarServiceController {
             user,
             files.avatar?.[0],
             files.photos,
-            files.video?.[0],
         )
     }
 
