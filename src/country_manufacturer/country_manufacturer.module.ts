@@ -10,4 +10,4 @@ import { CountryManufacturerController } from './country_manufacturer.controller
     controllers: [CountryManufacturerController],
     exports: [CountryManufacturerService, TypeOrmModule],
 })
-export class CityModule { }
+export class CountryManufacturerModule { }

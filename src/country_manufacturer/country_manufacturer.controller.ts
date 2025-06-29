@@ -6,8 +6,8 @@ import { CreateCityDto } from './dto/city.dto';
 import { Public } from '../auth/decorators/can-be-public.decorator'; // ✅ Импортируем Public
 import { Delete, Param } from '@nestjs/common';
 
-@ApiTags('City')
-@Controller('city')
+@ApiTags('country-manufacturer')
+@Controller('country-manufacturer')
 export class CountryManufacturerController {
     constructor(private readonly cityService: CountryManufacturerService) { }
 
