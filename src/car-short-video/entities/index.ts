@@ -1,0 +1,1 @@
+export { CarShortVideoEntity } from './car-short-video.entity'

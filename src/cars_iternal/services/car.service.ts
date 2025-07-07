@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, HttpStatus, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { CarIternal } from '../entities/index';
@@ -14,7 +14,9 @@ import { CreateCarDto } from '../dto/create-car.dto';
 import { Cache } from 'cache-manager';
 import { Inject } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import {CountryManufacturerModel} from 'src/country_manufacturer/entities'
+import { CountryManufacturerModel } from 'src/country_manufacturer/entities'
+import { StorageService } from '../../shared/storage/s3.service'
+
 import * as fs from 'fs';
 import * as path from 'path';
 import {
@@ -44,6 +46,7 @@ export class CarService {
     private readonly cityRepository: Repository<CityModel>,
     @InjectRepository(TechnologyAutoModel)
     private readonly technologyRepository: Repository<TechnologyAutoModel>,
+    private readonly storageService: StorageService,
 
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
     // cityRepository
@@ -60,6 +63,7 @@ export class CarService {
       .leftJoinAndSelect('car.engine_type', 'engine')
       .leftJoinAndSelect('car.body_type', 'body')
       .leftJoinAndSelect('car.gear_box', 'gear')
+      .where('car.moderated = :moderated', { moderated: true })
 
     if (filters.brandId) query.andWhere('car.brand = :brandId', { brandId: filters.brandId })
 
@@ -102,7 +106,23 @@ export class CarService {
       },
     }
   }
+  async findAllNoModerated(user: any) {
+    if (user && user.role !== 'ADMIN' || !user) {
+      throw new ForbiddenException('Access denied')
+    }
+    const query = this.carRepository.createQueryBuilder('service')
+      .where('service.moderated = :moderated', { moderated: false })
 
+    return query.getMany()
+  }
+  async uploadVideoToS3(serviceId: number, videoFile: Express.Multer.File) {
+    const videoUrl = await this.storageService.uploadCarVideo(videoFile)
+
+
+    await this.carRepository.update(serviceId, { videoLink: videoUrl, moderated: false, })
+
+    return { success: true, url: videoUrl }
+  }
 
   async findOne(id: number): Promise<CarIternal> {
     return this.carRepository.findOne({
@@ -142,11 +162,47 @@ export class CarService {
 
     return { message: `Автомобиль с ID ${id} удалён` };
   }
+  async isCreatedByUser(carId: number, user: any): Promise<boolean> {
+    const service = await this.carRepository.findOne({
+      where: { id: carId },
+      relations: ['createdBy'],
+    })
+
+    if (!service) {
+      throw new BadRequestException('Service not found')
+    }
+
+    return service.createdBy.id === user.id
+  }
+  private raiseFieldError(field: string, message: string): never {
+    throw new BadRequestException(
+      {
+        statusCode: HttpStatus.BAD_REQUEST,
+        errors: [{ field, message }],
+      },
+      'ValidationError',
+    )
+  }
+
+  async moderateService(id: number, user: any): Promise<CarIternal> {
+    if (user.role !== 'ADMIN') {
+      throw new ForbiddenException('Access denied')
+    }
+
+    const service = await this.carRepository.findOne({ where: { id } })
+    if (!service) {
+      throw new NotFoundException('Service not found')
+    }
+
+    service.moderated = true
+    return this.carRepository.save(service)
+  }
 
   async create(
     dto: CreateCarDto,
     avatarFile: Express.Multer.File | undefined,
     files: Express.Multer.File[] | undefined,
+    user: any
   ): Promise<CarIternal> {
     /* ---------- валидируем справочники параллельно ---------- */
     const [
@@ -169,49 +225,64 @@ export class CarService {
       this.technologyRepository.findOne({ where: { id: dto.technologyId } }),
     ])
 
-    if (!model) throw new Error('Invalid model ID')
-    if (!brand) throw new Error('Invalid brand ID')
-    if (!country) throw new Error('Invalid country ID')
-    if (!city) throw new Error('Invalid city ID')
-    if (!engine) throw new Error('Invalid engine type ID')
-    if (!body) throw new Error('Invalid body type ID')
-    if (!gear) throw new Error('Invalid gear box ID')
-    if (!technology) throw new Error('Invalid technology ID')
+    /* --- если чего-то нет, кидаем 400 --- */
+    if (!model) this.raiseFieldError('modelId', 'Модель не найдена')
+    if (!brand) this.raiseFieldError('brandId', 'Бренд не найден')
+    if (!country) this.raiseFieldError('countryId', 'Страна не найдена')
+    if (!city) this.raiseFieldError('cityId', 'Город не найден')
+    if (!engine) this.raiseFieldError('engineTypeId', 'Двигатель не найден')
+    if (!body) this.raiseFieldError('bodyTypeId', 'Кузов не найден')
+    if (!gear) this.raiseFieldError('gearBoxId', 'КПП не найдена')
+    if (!technology) this.raiseFieldError('technologyId', 'Технология не найдена')
 
-    /* ----------------------- медиа-файлы --------------------- */
+    /* ---------- медиа ---------- */
     const avatarUrl = avatarFile ? `/uploads/cars/${avatarFile.filename}` : null
-    const photoUrls =
-      Array.isArray(files) ? files.map(f => `/uploads/cars/${f.filename}`) : []
+    const photoUrls = Array.isArray(files)
+      ? files.map(f => `/uploads/cars/${f.filename}`)
+      : []
 
-    /* --------- убираем ID-поля, чтобы не дублировать -------- */
-    const {
-      brandId,
-      modelId,
-      countryId,
-      cityId,
-      engineTypeId,
-      bodyTypeId,
-      gearBoxId,
-      technologyId,
-      ...rest // все остальные поля DTO: price, mileage, booleans и т.д.
-    } = dto
-
-    /* ------------------- создаём сущность ------------------- */
+    /* ---------- создаём сущность ---------- */
     const car = this.carRepository.create({
-      ...rest,            // scalar-поля (color, price, mileage, …)
+      /* scalar */
+      hpCount: dto.hp_count,
+      numberOfSeats: dto.number_of_seats,
+      color: dto.color,
+      vinCode: dto.vin_code,
+      enginePower: dto.engine_power,
+      mileage: dto.mileage,
+      year: dto.year,
+      price: dto.price,
+      creditPosible: dto.credit_posible,
+      barterPosible: dto.barter_posible,
+      crashed: dto.crashed,
+      collored: dto.collored,
+      needsRenovation: dto.needs_renovation,
+      userName: dto.user_name,
+      userEmail: dto.user_email,
+      userPhone: dto.user_phone,
+      description: dto.description,
+      moderated: dto.moderated,
+
+      /* relations */
       brand,
       model,
       country,
-      cityId: city,       // отношение на CityModel
-      engine_type: engine,
-      body_type: body,
-      gear_box: gear,
+      city,
+      engineType: engine,
+      bodyType: body,
+      gearBox: gear,
       technology,
+
+      /* media */
       avatar: avatarUrl,
       photos: photoUrls,
+      videoLink: dto.videoLink,
+
+      createdBy: user,            // ENTIRE User entity
     })
 
-    await this.cacheManager.del('cars_all') // очистка кэша
+    /* ---------- кэш ---------- */
+    await this.cacheManager.del('cars_all')
 
     return this.carRepository.save(car)
   }

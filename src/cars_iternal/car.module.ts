@@ -13,12 +13,15 @@ import { GearModel } from '../gear_box/entities/gear.entity';
 import { CityModel } from 'src/city/entities';
 import { TechnologyAutoModel } from 'src/technology_avto/entities';
 import { CountryManufacturerModel } from 'src/country_manufacturer/entities';
+import { StorageModule } from '../shared/storage/storage.module'
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([CarIternal, TechnologyAutoModel,CountryManufacturerModel, CarBrandIternal, CityModel, CarModelIternar, EngineModel, BodyModel, GearModel]),
+    TypeOrmModule.forFeature([CarIternal, TechnologyAutoModel, CountryManufacturerModel, CarBrandIternal, CityModel, CarModelIternar, EngineModel, BodyModel, GearModel]),
+    StorageModule,
     CacheModule.register({ ttl: 3600 }), // ✅ Добавляем кэширование
   ],
+
   providers: [CarService],
   controllers: [CarController],
 })

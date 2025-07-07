@@ -25,7 +25,8 @@ import { AutoModelIternalModule } from './auto_model_iternal/auto-model.module'
 import { AutoModeClasseslIternalModule } from './auto_model_iternal_classes/auto-model.module';
 import { CarIternalModule } from './cars_iternal/car.module';
 import { TechnologyModule } from './technology_avto/technology_auto.module';
-import {CountryManufacturerModule} from './country_manufacturer/country_manufacturer.module'
+import { CountryManufacturerModule } from './country_manufacturer/country_manufacturer.module'
+import { CarShortVideoModule } from './car-short-video/car-short-video.module';
 const passportModule = PassportModule.register({ defaultStrategy: 'jwt' });
 
 @Module({
@@ -36,6 +37,7 @@ const passportModule = PassportModule.register({ defaultStrategy: 'jwt' });
     DatabaseModule,
     AuthModule,
     UsersModule,
+    CarShortVideoModule,
     GearModule,
     AutoBrandModule,
     AutoModelModule,

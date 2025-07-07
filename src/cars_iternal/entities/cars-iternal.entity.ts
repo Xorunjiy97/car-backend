@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from 'typeorm';
 import { CarBrandIternal } from 'src/auta_brands_iternal_cars/entities';
 import { CarModelIternar } from 'src/auto_model_iternal/entities';
 import { EngineModel } from 'src/engine_type/entities/engine.entity';
@@ -7,96 +7,115 @@ import { BodyModel } from 'src/body_type/entities/body.entity';
 import { GearModel } from 'src/gear_box/entities/gear.entity';
 import { CityModel } from 'src/city/entities';
 import { TechnologyAutoModel } from 'src/technology_avto/entities';
+import { User } from 'src/users/entities/user.entity';
 
 @Entity('cars_iternal')
 export class CarIternal {
+  /* ---------- PK ---------- */
   @PrimaryGeneratedColumn()
-  id: number;
+  id: number
 
-  @ManyToOne(() => CarBrandIternal, { nullable: false })
-  brand: CarBrandIternal;
+  /* ---------- scalar ---------- */
 
-  @ManyToOne(() => CarModelIternar, { nullable: false })
-  model: CarModelIternar;
 
-  @ManyToOne(() => CountryManufacturerModel, { nullable: false })
-  country: CountryManufacturerModel;
+  @Column({ name: 'hp_count', type: 'int' })
+  hpCount: number
 
-  @ManyToOne(() => EngineModel, { nullable: false })
-  engine_type: EngineModel;
+  @Column({ name: 'number_of_seats', type: 'int' })
+  numberOfSeats: number
 
-  @ManyToOne(() => CityModel, { nullable: false })
-  cityId: CityModel;
+  @Column()
+  color: string
 
-  @ManyToOne(() => BodyModel, { nullable: false })
-  body_type: BodyModel;
+  @Column({ name: 'vin_code' })
+  vinCode: string
 
-  @ManyToOne(() => TechnologyAutoModel, { nullable: false })
-  technology: TechnologyAutoModel;
-
-  @ManyToOne(() => GearModel, { nullable: false })
-  gear_box: GearModel;
+  @Column({ name: 'engine_power', type: 'int' })
+  enginePower: number
 
   @Column({ type: 'int' })
-  hp_count: number;
+  mileage: number
 
   @Column({ type: 'int' })
-  number_of_seats: number;
-
-  @Column({ type: 'varchar' })
-  color: string;
-
-  @Column({ type: 'varchar' })
-  vin_code: string;
-
-  @Column({ default: false, nullable: true })
-  credit_posible: boolean;
-
-  @Column({ default: false, nullable: true })
-  barter_posible: boolean;
-
-  @Column({ default: false, nullable: true })
-  crashed: boolean;
-
-  @Column({ default: false, nullable: true })
-  collored: boolean;
-
-  @Column({ default: false, nullable: true })
-  needs_renovation: boolean;
-
-  @Column({ type: 'varchar' })
-  user_name: string;
-
-  @Column({ type: 'varchar' })
-  user_email: string;
-
-  @Column({ type: 'varchar' })
-  user_phone: string;
-
-  @Column({ type: 'text' })
-  description: string;
+  year: number
 
   @Column({ type: 'decimal', precision: 10, scale: 2 })
-  price: number;
+  price: number
 
-  @Column({ type: 'int' })
-  mileage: number;
+  @Column({ name: 'credit_posible', default: false })
+  creditPosible: boolean
 
-  @Column({ type: 'int' })
-  engine_power: number;
+  @Column({ name: 'barter_posible', default: false })
+  barterPosible: boolean
 
-  @Column({ type: 'int' })
-  year: number;
+  @Column({ default: false })
+  crashed: boolean
+
+  @Column({ name: 'collored', default: false })
+  collored: boolean
+
+  @Column({ name: 'needs_renovation', default: false })
+  needsRenovation: boolean
+
+  @Column()
+  userName: string
+
+  @Column()
+  userEmail: string
+
+  @Column()
+  userPhone: string
+
+  @Column({ type: 'text' })
+  description: string
 
   @Column({ type: 'text', array: true, nullable: true })
-  photos: string[];
-
-  @Column({ type: "varchar", nullable: true })
-  avatar: string
+  photos: string[]
 
   @Column({ nullable: true })
-  videoLink: string;
+  avatar: string | null
 
-  @Column({ default: false, nullable: true })
+  @Column({ nullable: true })
+  videoLink: string | null
+
+  @Column({ default: false })
   moderated: boolean
+
+  /* ---------- relations ---------- */
+  @ManyToOne(() => CarBrandIternal, { nullable: false })
+  @JoinColumn({ name: 'brand_id' })
+  brand: CarBrandIternal
+
+  @ManyToOne(() => CarModelIternar, { nullable: false })
+  @JoinColumn({ name: 'model_id' })
+  model: CarModelIternar
+
+  @ManyToOne(() => CountryManufacturerModel, { nullable: false })
+  @JoinColumn({ name: 'country_id' })
+  country: CountryManufacturerModel
+
+  @ManyToOne(() => EngineModel, { nullable: false })
+  @JoinColumn({ name: 'engine_type_id' })
+  engineType: EngineModel
+
+  @ManyToOne(() => CityModel, { nullable: false })
+  @JoinColumn({ name: 'city_id' })
+  city: CityModel
+
+  @ManyToOne(() => BodyModel, { nullable: false })
+  @JoinColumn({ name: 'body_type_id' })
+  bodyType: BodyModel
+
+  @ManyToOne(() => TechnologyAutoModel, { nullable: false })
+  @JoinColumn({ name: 'technology_id' })
+  technology: TechnologyAutoModel
+
+  @ManyToOne(() => GearModel, { nullable: false })
+  @JoinColumn({ name: 'gear_box_id' })
+  gearBox: GearModel
+
+  @ManyToOne(() => User)
+  @JoinColumn({ name: 'created_by' })
+  createdBy: User
 }
+

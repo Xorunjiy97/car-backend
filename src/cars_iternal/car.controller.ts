@@ -9,7 +9,11 @@ import {
   UploadedFile,
   Res,
   Query,
-  Delete
+  Delete,
+  UseGuards,
+  BadRequestException,
+  Req,
+  Patch
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -22,11 +26,14 @@ import { CarService } from './services/car.service';
 import { CreateCarDto } from './dto/create-car.dto';
 import { multerConfig } from '../../multer.config';
 import { Response } from 'express';
+import { Request } from 'express'
+
 import * as path from 'path';
 import * as fs from 'fs';
 import { Public } from '../auth/decorators/can-be-public.decorator'; // ✅ Импортируем Public
 import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import { GetCarListDto } from './dto/get-car-list.dto';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 
 @ApiTags('Cars Iternal') // ✅ Swagger категория
@@ -59,6 +66,48 @@ export class CarController {
   async findAll(@Query() query: GetCarListDto) {
     return this.carService.findAll(query)
   }
+  @Post(':id/upload-video')
+  @UseGuards(JwtAuthGuard)
+  @UseInterceptors(
+    FileFieldsInterceptor([{ name: 'video', maxCount: 1 }]) // без multerConfig
+  )
+  @UseGuards(JwtAuthGuard)
+  @Get('is-owner')
+  async isOwner(@Query('id') id: number, @Req() req: Request) {
+    if (!id) {
+      throw new BadRequestException('Service ID is required')
+    }
+
+    const user = req.user as any // типизируй под свою сущность пользователя
+
+    const isOwner = await this.carService.isCreatedByUser(id, { id: user.sub })
+    return { isOwner }
+  }
+  async uploadVideo(
+    @Param('id') id: number,
+    @UploadedFiles() files: { video?: Express.Multer.File[] },
+  ) {
+    const videoFile = files.video?.[0]
+
+    if (!videoFile) throw new BadRequestException('Видео не загружено')
+
+    return this.carService.uploadVideoToS3(id, videoFile)
+  }
+  @Get('no-moderated')
+  @UseGuards(JwtAuthGuard)
+  async findAllNoModerated(@Req() req: Request) {
+    const user = req.user
+    return this.carService.findAllNoModerated(user)
+  }
+
+  @Patch('moderate/:id')
+  @UseGuards(JwtAuthGuard)
+  async moderateService(
+    @Param('id') id: number,
+    @Req() req: Request,
+  ) {
+    return this.carService.moderateService(id, req.user)
+  }
   @Public()
   @Get(':id')
   @ApiOperation({ summary: 'Получить автомобиль по ID' })
@@ -66,7 +115,6 @@ export class CarController {
     return await this.carService.findOne(id);
   }
 
-  @Public()
   @Post()
   @ApiOperation({ summary: 'Создать автомобиль с фото' })
   @UseInterceptors(
@@ -120,11 +168,16 @@ export class CarController {
       avatar?: Express.Multer.File[],
       photos?: Express.Multer.File[],
     },
+    @Req() req: Request,
+
   ) {
     const avatarFile = files.avatar?.[0] ?? null;
     const photoFiles = files.photos ?? [];
+    const user = req.user as any
+    console.log(user)
 
-    return await this.carService.create(dto, avatarFile, photoFiles);
+
+    return await this.carService.create(dto, avatarFile, photoFiles, { id: user.sub });
   }
   // ✅ API для получения фото по URL
   @Get('photo/:filename')

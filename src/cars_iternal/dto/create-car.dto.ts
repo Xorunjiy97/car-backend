@@ -13,15 +13,12 @@ import { Type } from 'class-transformer'
 export class CreateCarDto {
     /* --------------------------------- базовое -------------------------------- */
 
-    @ApiProperty({ example: 'Mercedes G-Class', description: 'Название автомобиля' })
-    @IsString()
-    name: string
+
 
     /* ----------------------------- связи / справочники ------------------------ */
 
     @ApiProperty({ example: 1, description: 'ID бренда' })
-    @Type(() => Number)
-    @IsInt()
+    @Type(() => Number) @IsInt()
     brandId: number
 
     @ApiProperty({ example: 2, description: 'ID модели' })
