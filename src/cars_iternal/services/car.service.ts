@@ -1,6 +1,6 @@
 import { BadRequestException, ForbiddenException, HttpStatus, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { CarIternal } from '../entities/index';
 import { CarBrandIternal } from 'src/auta_brands_iternal_cars/entities';
 import { CarModelIternar } from 'src/auto_model_iternal/entities';
@@ -52,45 +52,74 @@ export class CarService {
     // cityRepository
   ) { }
 
-  async findAll(filters: GetCarListDto): Promise<Pagination<CarIternal>> {
+  async findAll(
+    filters: GetCarListDto,
+  ): Promise<Pagination<CarIternal>> {
     const { page, limit } = filters
-    console.log(filters, 'filters')
 
-    const query = this.carRepository.createQueryBuilder('car')
+    /* ---------- QueryBuilder с JOIN’ами ---------- */
+    const qb = this.carRepository
+      .createQueryBuilder('car')
       .leftJoinAndSelect('car.brand', 'brand')
       .leftJoinAndSelect('car.model', 'model')
       .leftJoinAndSelect('car.country', 'country')
-      .leftJoinAndSelect('car.engine_type', 'engine')
-      .leftJoinAndSelect('car.body_type', 'body')
-      .leftJoinAndSelect('car.gear_box', 'gear')
+      .leftJoinAndSelect('car.engineType', 'engine')
+      .leftJoinAndSelect('car.bodyType', 'body')
+      .leftJoinAndSelect('car.gearBox', 'gear')
+      .leftJoinAndSelect('car.technologies', 'tech')
+      .leftJoinAndSelect('car.city', 'city') // если нужно
       .where('car.moderated = :moderated', { moderated: true })
 
-    if (filters.brandId) query.andWhere('car.brand = :brandId', { brandId: filters.brandId })
+    /* ---------- фильтры по справочникам ---------- */
+    if (filters.brandId)
+      qb.andWhere('brand.id = :brandId', { brandId: filters.brandId })
 
-    if (filters.countryId?.length) {
-      query.andWhere('car.country IN (:...countryIds)', { countryIds: filters.countryId });
-    }
-    if (filters.engineTypeId?.length) {
-      query.andWhere('car.engine_type IN (:...engineTypeIds)', { engineTypeIds: filters.engineTypeId });
-    }
-    if (filters.bodyTypeId?.length) {
-      query.andWhere('car.body_type IN (:...bodyTypeIds)', { bodyTypeIds: filters.bodyTypeId });
-    }
-    if (filters.gearBoxId?.length) {
-      query.andWhere('car.gear_box IN (:...gearBoxIds)', { gearBoxIds: filters.gearBoxId });
-    }
+    if (filters.countryId?.length)
+      qb.andWhere('country.id IN (:...countryIds)', {
+        countryIds: filters.countryId,
+      })
 
+    if (filters.engineTypeId?.length)
+      qb.andWhere('engine.id IN (:...engineTypeIds)', {
+        engineTypeIds: filters.engineTypeId,
+      })
 
-    if (filters.priceFromMin) query.andWhere('car.priceFrom >= :priceFromMin', { priceFromMin: filters.priceFromMin })
-    if (filters.priceFromMax) query.andWhere('car.priceFrom <= :priceFromMax', { priceFromMax: filters.priceFromMax })
+    if (filters.bodyTypeId?.length)
+      qb.andWhere('body.id IN (:...bodyTypeIds)', {
+        bodyTypeIds: filters.bodyTypeId,
+      })
 
-    if (filters.mileageMin) query.andWhere('car.mileage >= :mileageMin', { mileageMin: filters.mileageMin })
-    if (filters.mileageMax) query.andWhere('car.mileage <= :mileageMax', { mileageMax: filters.mileageMax })
+    if (filters.gearBoxId?.length)
+      qb.andWhere('gear.id IN (:...gearBoxIds)', {
+        gearBoxIds: filters.gearBoxId,
+      })
 
-    if (filters.yearMin) query.andWhere('car.year >= :yearMin', { yearMin: filters.yearMin })
-    if (filters.yearMax) query.andWhere('car.year <= :yearMax', { yearMax: filters.yearMax })
+    /* ---------- фильтры-диапазоны ---------- */
+    if (filters.priceFromMin)
+      qb.andWhere('car.price >= :priceFromMin', {
+        priceFromMin: filters.priceFromMin,
+      })
+    if (filters.priceFromMax)
+      qb.andWhere('car.price <= :priceFromMax', {
+        priceFromMax: filters.priceFromMax,
+      })
 
-    const [items, total] = await query
+    if (filters.mileageMin)
+      qb.andWhere('car.mileage >= :mileageMin', {
+        mileageMin: filters.mileageMin,
+      })
+    if (filters.mileageMax)
+      qb.andWhere('car.mileage <= :mileageMax', {
+        mileageMax: filters.mileageMax,
+      })
+
+    if (filters.yearMin)
+      qb.andWhere('car.year >= :yearMin', { yearMin: filters.yearMin })
+    if (filters.yearMax)
+      qb.andWhere('car.year <= :yearMax', { yearMax: filters.yearMax })
+
+    /* ---------- пагинация ---------- */
+    const [items, total] = await qb
       .skip((page - 1) * limit)
       .take(limit)
       .getManyAndCount()
@@ -106,15 +135,28 @@ export class CarService {
       },
     }
   }
-  async findAllNoModerated(user: any) {
-    if (user && user.role !== 'ADMIN' || !user) {
-      throw new ForbiddenException('Access denied')
-    }
-    const query = this.carRepository.createQueryBuilder('service')
-      .where('service.moderated = :moderated', { moderated: false })
 
-    return query.getMany()
+  async findAllNoModerated(user: any): Promise<CarIternal[]> {
+    // 1) доступ только для ADMIN
+    if ((!user) || (user && user.role !== 'ADMIN')) {
+      throw new ForbiddenException('Access denied');
+    }
+
+    // 2) полный набор JOIN’ов, как в основном списке
+    return this.carRepository
+      .createQueryBuilder('car')
+      .leftJoinAndSelect('car.brand', 'brand')
+      .leftJoinAndSelect('car.model', 'model')
+      .leftJoinAndSelect('car.country', 'country')
+      .leftJoinAndSelect('car.engineType', 'engine')
+      .leftJoinAndSelect('car.bodyType', 'body')
+      .leftJoinAndSelect('car.gearBox', 'gear')
+      .leftJoinAndSelect('car.city', 'city')
+      .leftJoinAndSelect('car.technologies', 'tech')
+      .where('car.moderated = :moderated', { moderated: false })
+      .getMany();
   }
+
   async uploadVideoToS3(serviceId: number, videoFile: Express.Multer.File) {
     const videoUrl = await this.storageService.uploadCarVideo(videoFile)
 
@@ -213,7 +255,7 @@ export class CarService {
       engine,
       body,
       gear,
-      technology,
+      technologies,
     ] = await Promise.all([
       this.modelRepository.findOne({ where: { id: dto.modelId } }),
       this.brandRepository.findOne({ where: { id: dto.brandId } }),
@@ -222,7 +264,7 @@ export class CarService {
       this.engineRepository.findOne({ where: { id: dto.engineTypeId } }),
       this.bodyRepository.findOne({ where: { id: dto.bodyTypeId } }),
       this.gearRepository.findOne({ where: { id: dto.gearBoxId } }),
-      this.technologyRepository.findOne({ where: { id: dto.technologyId } }),
+      this.technologyRepository.findBy({ id: In(dto.technologyIds) }),
     ])
 
     /* --- если чего-то нет, кидаем 400 --- */
@@ -233,7 +275,7 @@ export class CarService {
     if (!engine) this.raiseFieldError('engineTypeId', 'Двигатель не найден')
     if (!body) this.raiseFieldError('bodyTypeId', 'Кузов не найден')
     if (!gear) this.raiseFieldError('gearBoxId', 'КПП не найдена')
-    if (!technology) this.raiseFieldError('technologyId', 'Технология не найдена')
+    if (!technologies) this.raiseFieldError('technologyId', 'Технология не найдена')
 
     /* ---------- медиа ---------- */
     const avatarUrl = avatarFile ? `/uploads/cars/${avatarFile.filename}` : null
@@ -271,7 +313,7 @@ export class CarService {
       engineType: engine,
       bodyType: body,
       gearBox: gear,
-      technology,
+      technologies,
 
       /* media */
       avatar: avatarUrl,

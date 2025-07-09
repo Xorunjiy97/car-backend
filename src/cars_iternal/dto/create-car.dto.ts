@@ -7,8 +7,9 @@ import {
     IsEmail,
     IsArray,
     IsOptional,
+    ArrayNotEmpty,
 } from 'class-validator'
-import { Type } from 'class-transformer'
+import { Transform, Type } from 'class-transformer'
 
 export class CreateCarDto {
     /* --------------------------------- базовое -------------------------------- */
@@ -51,10 +52,16 @@ export class CreateCarDto {
     @IsInt()
     gearBoxId: number
 
-    @ApiProperty({ example: 8, description: 'ID технологии (топливной / гибридной и т.п.)' })
-    @Type(() => Number)
-    @IsInt()
-    technologyId: number
+    @ApiProperty({
+        example: [1, 3],
+        description: 'ID типов мастеров (в JSON формате в FormData)',
+        type: [Number],
+    })
+    @Transform(({ value }) => JSON.parse(value))
+    @IsArray()
+    @ArrayNotEmpty()
+    @IsInt({ each: true })
+    technologyIds: number[]
 
     /* ------------------------------ числовые поля ----------------------------- */
 

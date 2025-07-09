@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, JoinTable, ManyToMany } from 'typeorm';
 import { CarBrandIternal } from 'src/auta_brands_iternal_cars/entities';
 import { CarModelIternar } from 'src/auto_model_iternal/entities';
 import { EngineModel } from 'src/engine_type/entities/engine.entity';
@@ -106,9 +106,20 @@ export class CarIternal {
   @JoinColumn({ name: 'body_type_id' })
   bodyType: BodyModel
 
-  @ManyToOne(() => TechnologyAutoModel, { nullable: false })
-  @JoinColumn({ name: 'technology_id' })
-  technology: TechnologyAutoModel
+  @ManyToMany(() => TechnologyAutoModel)
+  @JoinTable({
+    name: 'car_technologies',           // уникальное имя таблицы-связки
+    joinColumn: {                       // FK на cars_iternal
+      name: 'car_id',
+      referencedColumnName: 'id',
+    },
+    inverseJoinColumn: {                // FK на technology_avto
+      name: 'technology_id',
+      referencedColumnName: 'id',
+    },
+  })
+  technologies: TechnologyAutoModel[]
+
 
   @ManyToOne(() => GearModel, { nullable: false })
   @JoinColumn({ name: 'gear_box_id' })

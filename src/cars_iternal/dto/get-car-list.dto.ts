@@ -1,100 +1,94 @@
-import { ApiPropertyOptional } from '@nestjs/swagger'
-import { Transform, Type } from 'class-transformer'
-import { IsOptional, IsInt, IsNumber, Min } from 'class-validator'
+// src/cars_iternal/dto/get-car-list.dto.ts
+import {
+  IsInt,
+  IsOptional,
+  IsPositive,
+  IsArray,
+  ArrayNotEmpty,
+  IsNumber,
+  Min,
+  Max,
+} from 'class-validator'
+import { Type } from 'class-transformer'
 
 export class GetCarListDto {
-  @ApiPropertyOptional({ example: 1 })
+  // пагинация
   @Type(() => Number)
-  @IsOptional()
   @IsInt()
-  page?: number = 1
+  @IsPositive()
+  page = 1
 
-  @ApiPropertyOptional({ example: 10 })
   @Type(() => Number)
-  @IsOptional()
   @IsInt()
-  limit?: number = 10
+  @IsPositive()
+  limit = 12
 
-  @ApiPropertyOptional({ example: 1 })
+  /* ------- фильтры по справочникам ------- */
   @Type(() => Number)
   @IsOptional()
   @IsInt()
   brandId?: number
 
-  @ApiPropertyOptional({ example: [2, 3], type: [Number] })
   @IsOptional()
-  @IsInt({ each: true })
-  @Transform(({ value }) =>
-    Array.isArray(value) ? value.map(Number) : [Number(value)]
-  )
-  modelId?: number[]
-  
-  @ApiPropertyOptional({ example: [1, 4], type: [Number] })
-  @IsOptional()
-  @IsInt({ each: true })
-  @Transform(({ value }) =>
-    Array.isArray(value) ? value.map(Number) : [Number(value)]
-  )
-  countryId?: number[]
-  
-  @ApiPropertyOptional({ example: [3], type: [Number] })
-  @IsOptional()
-  @IsInt({ each: true })
-  @Transform(({ value }) =>
-    Array.isArray(value) ? value.map(Number) : [Number(value)]
-  )
-  engineTypeId?: number[]
-  
-  @ApiPropertyOptional({ example: [5], type: [Number] })
-  @IsOptional()
-  @IsInt({ each: true })
-  @Transform(({ value }) =>
-    Array.isArray(value) ? value.map(Number) : [Number(value)]
-  )
-  bodyTypeId?: number[]
-  
-  @ApiPropertyOptional({ example: [6], type: [Number] })
-  @IsOptional()
-  @IsInt({ each: true })
-  @Transform(({ value }) =>
-    Array.isArray(value) ? value.map(Number) : [Number(value)]
-  )
-  gearBoxId?: number[]
-  
-
-  @ApiPropertyOptional({ example: 30000 })
+  @IsArray()
+  @ArrayNotEmpty()
   @Type(() => Number)
+  readonly countryId?: number[]
+
   @IsOptional()
+  @IsArray()
+  @ArrayNotEmpty()
+  @Type(() => Number)
+  readonly engineTypeId?: number[]
+
+  @IsOptional()
+  @IsArray()
+  @ArrayNotEmpty()
+  @Type(() => Number)
+  readonly bodyTypeId?: number[]
+
+  @IsOptional()
+  @IsArray()
+  @ArrayNotEmpty()
+  @Type(() => Number)
+  readonly gearBoxId?: number[]
+
+  /* ------- фильтры по диапазонам ------- */
+  @IsOptional()
+  @Type(() => Number)
   @IsNumber()
+  @Min(0)
   priceFromMin?: number
 
-  @ApiPropertyOptional({ example: 70000 })
-  @Type(() => Number)
   @IsOptional()
+  @Type(() => Number)
   @IsNumber()
+  @Min(0)
   priceFromMax?: number
 
-  @ApiPropertyOptional({ example: 10000 })
-  @Type(() => Number)
   @IsOptional()
+  @Type(() => Number)
   @IsNumber()
+  @Min(0)
   mileageMin?: number
 
-  @ApiPropertyOptional({ example: 100000 })
-  @Type(() => Number)
   @IsOptional()
+  @Type(() => Number)
   @IsNumber()
+  @Min(0)
   mileageMax?: number
 
-  @ApiPropertyOptional({ example: 2015 })
-  @Type(() => Number)
   @IsOptional()
+  @Type(() => Number)
   @IsInt()
+  @Min(1900)
+  @Max(new Date().getFullYear())
   yearMin?: number
 
-  @ApiPropertyOptional({ example: 2023 })
-  @Type(() => Number)
   @IsOptional()
+  @Type(() => Number)
   @IsInt()
+  @Min(1900)
+  @Max(new Date().getFullYear())
   yearMax?: number
 }

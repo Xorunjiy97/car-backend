@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common'
+import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { FindOptionsWhere, Repository } from 'typeorm'
 import { StorageService } from '../../shared/storage/s3.service'
@@ -36,8 +36,33 @@ export class CarShortVideoService {
     }
 
     async findAll() {
-        return this.videoRepo.find({ order: { createdAt: 'DESC' } })
+
+        return this.videoRepo.find({ where: { moderated: true }, order: { createdAt: 'DESC' } })
     }
+    async findAllNoModerated(user: any) {
+        if (user && user.role !== 'ADMIN' || !user) {
+            throw new ForbiddenException('Access denied')
+        }
+        const query = this.videoRepo.createQueryBuilder('video')
+            .where('video.moderated = :moderated', { moderated: false })
+
+        return query.getMany()
+    }
+
+    async moderateService(id: number, user: any): Promise<any> {
+        if (user.role !== 'ADMIN') {
+            throw new ForbiddenException('Access denied')
+        }
+
+        const service = await this.videoRepo.findOne({ where: { id } })
+        if (!service) {
+            throw new NotFoundException('Service not found')
+        }
+
+        service.moderated = true
+        return this.videoRepo.save(service)
+    }
+
     private async paginate(
         where: FindOptionsWhere<CarShortVideoEntity>,
         page: number,
@@ -61,14 +86,14 @@ export class CarShortVideoService {
 
     async findByBrand(brand: string) {
         return this.videoRepo.find({
-            where: { brand },
+            where: { brand, moderated: true },
             order: { createdAt: 'DESC' },
         })
     }
 
     async findByBrandAndModel(brand: string, model: string) {
         return this.videoRepo.find({
-            where: { brand, model },
+            where: { brand, model, moderated: true },
             order: { createdAt: 'DESC' },
         })
     }

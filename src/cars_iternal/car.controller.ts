@@ -37,7 +37,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 
 @ApiTags('Cars Iternal') // ✅ Swagger категория
-@Controller('cars_iternal')
+@Controller('cars-iternal')
 export class CarController {
   constructor(private readonly carService: CarService) { }
 
@@ -171,6 +171,7 @@ export class CarController {
     @Req() req: Request,
 
   ) {
+    console.log('RAW DTO --------', dto)
     const avatarFile = files.avatar?.[0] ?? null;
     const photoFiles = files.photos ?? [];
     const user = req.user as any
