@@ -1,3 +1,4 @@
+// src/car_short_videos/car-short-video.controller.ts
 import {
     Controller,
     Post,
@@ -10,54 +11,72 @@ import {
     UseGuards,
     Patch,
     Param,
+    ParseIntPipe,
+    DefaultValuePipe,
 } from '@nestjs/common'
 import { FileInterceptor } from '@nestjs/platform-express'
+import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard'
+import { Request } from 'express'
+
 import { CarShortVideoService } from './services/car-short-video.service'
 import { CreateCarShortVideoDto } from './dto/create-car-short-video.dto'
-import { PaginationQueryDto } from './dto/pagination-query.dto'
-import { Request } from 'express'
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-
+interface UserSub {
+    sub: number,
+    role: string
+}
 @Controller('car-short-videos')
 export class CarShortVideoController {
     constructor(private readonly service: CarShortVideoService) { }
 
+    /* ------------------------------------------------------------------ */
+    /*  Создание видео                                                    */
+    /* ------------------------------------------------------------------ */
     @Post()
     @UseInterceptors(FileInterceptor('file'))
     create(
         @Body() dto: CreateCarShortVideoDto,
         @UploadedFile() file: Express.Multer.File,
+        @Req() req: Request
     ) {
-        return this.service.create(dto, file)
+        const user = req.user as UserSub
+        return this.service.create(dto, file, user)
     }
 
+    /* ------------------------------------------------------------------ */
+    /*  Публичный список                                                  */
+    /* ------------------------------------------------------------------ */
     @Get()
     getVideos(
-        @Query('brand') brand?: string,
-        @Query('model') model?: string,
+        @Query('brandId') brandId?: number,
+        @Query('modelId') modelId?: number,
     ) {
-        if (brand && model) {
-            return this.service.findByBrandAndModel(brand, model)
+        if (brandId && modelId) {
+            return this.service.findByBrandAndModel(brandId, modelId)
         }
-        if (brand) {
-            return this.service.findByBrand(brand)
+        if (brandId) {
+            return this.service.findByBrand(brandId)
         }
         return this.service.findAll()
     }
 
+    /* ------------------------------------------------------------------ */
+    /*  Немодерированные (только ADMIN)                                   */
+    /* ------------------------------------------------------------------ */
     @Get('no-moderated')
     @UseGuards(JwtAuthGuard)
-    async findAllNoModerated(@Req() req: Request) {
-        const user = req.user
-        return this.service.findAllNoModerated(user)
+    findAllNoModerated(@Req() req: Request) {
+        return this.service.findAllNoModerated(req.user)
     }
 
+    /* ------------------------------------------------------------------ */
+    /*  Модерация                                                          */
+    /* ------------------------------------------------------------------ */
     @Patch('moderate/:id')
     @UseGuards(JwtAuthGuard)
-    async moderateService(
-        @Param('id') id: number,
+    moderateVideo(
+        @Param('id', ParseIntPipe) id: number,
         @Req() req: Request,
     ) {
-        return this.service.moderateService(id, req.user)
+        return this.service.moderateVideo(id, req.user)
     }
 }

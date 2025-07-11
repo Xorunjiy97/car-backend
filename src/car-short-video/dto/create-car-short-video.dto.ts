@@ -1,15 +1,19 @@
-import { IsNotEmpty, IsOptional, IsString } from 'class-validator'
+// src/car_short_videos/dto/create-car-short-video.dto.ts
+import { IsInt, IsOptional, IsString, IsPositive } from 'class-validator'
+import { Type } from 'class-transformer'
 
 export class CreateCarShortVideoDto {
-    @IsString()
-    @IsNotEmpty()
-    brand: string
+    @Type(() => Number)
+    @IsInt()
+    @IsPositive()
+    brandId: number   // FK → CarBrandIternal
 
-    @IsString()
-    @IsNotEmpty()
-    model: string
+    @Type(() => Number)
+    @IsInt()
+    @IsPositive()
+    modelId: number   // FK → CarModelIternar
 
-    @IsString()
     @IsOptional()
+    @IsString()
     description?: string
 }

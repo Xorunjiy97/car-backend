@@ -1,9 +1,19 @@
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common'
+// src/car_short_videos/services/car-short-video.service.ts
+import {
+    ForbiddenException,
+    Injectable,
+    NotFoundException,
+} from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { FindOptionsWhere, Repository } from 'typeorm'
-import { StorageService } from '../../shared/storage/s3.service'
+import { Repository, FindOptionsWhere, In, MoreThan } from 'typeorm'
+
 import { CarShortVideoEntity } from '../entities/car-short-video.entity'
+import { CarBrandIternal } from 'src/auta_brands_iternal_cars/entities'
+import { CarModelIternar } from 'src/auto_model_iternal/entities'
+import { StorageService } from 'src/shared/storage/s3.service'
 import { CreateCarShortVideoDto } from '../dto/create-car-short-video.dto'
+import { User } from 'src/users/entities/user.entity';
+
 interface Paginated<T> {
     items: T[]
     total: number
@@ -11,58 +21,104 @@ interface Paginated<T> {
     limit: number
     pages: number
 }
+interface UserSub {
+    sub: number,
+    role: string
+}
+
 @Injectable()
 export class CarShortVideoService {
     constructor(
         @InjectRepository(CarShortVideoEntity)
         private readonly videoRepo: Repository<CarShortVideoEntity>,
+
+        @InjectRepository(CarBrandIternal)
+        private readonly brandRepo: Repository<CarBrandIternal>,
+
+        @InjectRepository(CarModelIternar)
+        private readonly modelRepo: Repository<CarModelIternar>,
+
         private readonly storageService: StorageService,
+
+        @InjectRepository(User)
+        private readonly userRepo: Repository<User>
     ) { }
 
+
+
+    /* ------------------------------------------------------------------ */
+    /*  CREATE                                                           */
+    /* ------------------------------------------------------------------ */
     async create(
         dto: CreateCarShortVideoDto,
         file: Express.Multer.File,
+        currentUser: UserSub,
     ): Promise<CarShortVideoEntity> {
+
+        /* --- проверяем, есть ли у автора НЕмодерированные видео --- */
+        const hasUnmoderated = await this.videoRepo.findOne({
+            where: {
+                createdBy: { id: +currentUser.sub },   // автор
+                moderated: false,                      // ещё не проверено админом
+            },
+            select: { id: true },                    // нам нужен только факт
+        })
+
+        if (hasUnmoderated) {
+            throw new ForbiddenException(
+                'У вас уже есть видео на модерации. Подождите, пока администратор его одобрит.',
+            )
+        }
+
+        /* --- грузим файл, создаём новую запись --- */
+        const [brand, model] = await Promise.all([
+            this.brandRepo.findOneByOrFail({ id: dto.brandId }),
+            this.modelRepo.findOneByOrFail({ id: dto.modelId }),
+        ])
+
         const videoUrl = await this.storageService.uploadShortCarVideo(file)
 
         const video = this.videoRepo.create({
-            brand: dto.brand,
-            model: dto.model,
+            brand,
+            model,
             description: dto.description,
             videoUrl,
+            createdBy: { id: +currentUser.sub },
+            // moderated остаётся false по умолчанию
         })
 
         return this.videoRepo.save(video)
     }
 
-    async findAll() {
 
-        return this.videoRepo.find({ where: { moderated: true }, order: { createdAt: 'DESC' } })
+
+    /* ------------------------------------------------------------------ */
+    /*  READ                                                             */
+    /* ------------------------------------------------------------------ */
+
+    /** Публичный список (только модерированные) */
+    async findAll(): Promise<CarShortVideoEntity[]> {
+        return this.videoRepo.find({
+            where: { moderated: true },
+            relations: { brand: true, model: true },
+            order: { createdAt: 'DESC' },
+        })
     }
-    async findAllNoModerated(user: any) {
-        if (user && user.role !== 'ADMIN' || !user) {
+
+    /** Немодерированные – только для ADMIN */
+    async findAllNoModerated(user: any): Promise<CarShortVideoEntity[]> {
+        if (!user || user.role !== 'ADMIN') {
             throw new ForbiddenException('Access denied')
         }
-        const query = this.videoRepo.createQueryBuilder('video')
-            .where('video.moderated = :moderated', { moderated: false })
 
-        return query.getMany()
+        return this.videoRepo.find({
+            where: { moderated: false },
+            relations: { brand: true, model: true },
+            order: { createdAt: 'DESC' },
+        })
     }
 
-    async moderateService(id: number, user: any): Promise<any> {
-        if (user.role !== 'ADMIN') {
-            throw new ForbiddenException('Access denied')
-        }
-
-        const service = await this.videoRepo.findOne({ where: { id } })
-        if (!service) {
-            throw new NotFoundException('Service not found')
-        }
-
-        service.moderated = true
-        return this.videoRepo.save(service)
-    }
-
+    /** Пагинированный поиск (если понадобится) */
     private async paginate(
         where: FindOptionsWhere<CarShortVideoEntity>,
         page: number,
@@ -70,6 +126,7 @@ export class CarShortVideoService {
     ): Promise<Paginated<CarShortVideoEntity>> {
         const [items, total] = await this.videoRepo.findAndCount({
             where,
+            relations: { brand: true, model: true },
             order: { createdAt: 'DESC' },
             skip: (page - 1) * limit,
             take: limit,
@@ -84,17 +141,47 @@ export class CarShortVideoService {
         }
     }
 
-    async findByBrand(brand: string) {
+    /** По бренду */
+    async findByBrand(brandId: number): Promise<CarShortVideoEntity[]> {
         return this.videoRepo.find({
-            where: { brand, moderated: true },
+            where: {
+                moderated: true,
+                brand: { id: brandId },
+            },
+            relations: { brand: true, model: true },
             order: { createdAt: 'DESC' },
         })
     }
 
-    async findByBrandAndModel(brand: string, model: string) {
+    /** По бренду и модели */
+    async findByBrandAndModel(
+        brandId: number,
+        modelId: number,
+    ): Promise<CarShortVideoEntity[]> {
         return this.videoRepo.find({
-            where: { brand, model, moderated: true },
+            where: {
+                moderated: true,
+                brand: { id: brandId },
+                model: { id: modelId },
+            },
+            relations: { brand: true, model: true },
             order: { createdAt: 'DESC' },
         })
+    }
+
+    /* ------------------------------------------------------------------ */
+    /*  UPDATE (модерация)                                               */
+    /* ------------------------------------------------------------------ */
+    async moderateVideo(id: number, user: any): Promise<CarShortVideoEntity> {
+        if (user.role !== 'ADMIN') throw new ForbiddenException('Access denied')
+
+        const video = await this.videoRepo.findOne({
+            where: { id },
+            relations: { brand: true, model: true },
+        })
+        if (!video) throw new NotFoundException('Video not found')
+
+        video.moderated = true
+        return this.videoRepo.save(video)
     }
 }

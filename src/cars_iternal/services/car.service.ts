@@ -246,6 +246,17 @@ export class CarService {
     files: Express.Multer.File[] | undefined,
     user: any
   ): Promise<CarIternal> {
+
+    /* ---------- 1. анти-спам ---------- */
+    const pending = await this.carRepository.findOne({
+      select: ['id'],
+      where: { createdBy: { id: user.sub }, moderated: false },
+    })
+    if (pending) {
+      throw new ForbiddenException(
+        'У вас уже есть объявление, ожидающее модерации. Дождитесь проверки модератора.',
+      )
+    }
     /* ---------- валидируем справочники параллельно ---------- */
     const [
       model,
