@@ -47,16 +47,18 @@ export class CarShortVideoController {
     /* ------------------------------------------------------------------ */
     @Get()
     getVideos(
+        @Req() req: Request,
         @Query('brandId') brandId?: number,
         @Query('modelId') modelId?: number,
     ) {
+        const currentUser = req.user as UserSub
         if (brandId && modelId) {
-            return this.service.findByBrandAndModel(brandId, modelId)
+            return this.service.findByBrandAndModel(brandId, modelId, currentUser)
         }
         if (brandId) {
-            return this.service.findByBrand(brandId)
+            return this.service.findByBrand(brandId, currentUser)
         }
-        return this.service.findAll()
+        return this.service.findAll(currentUser)
     }
 
     /* ------------------------------------------------------------------ */

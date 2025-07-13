@@ -48,6 +48,11 @@ export class CarShortVideoEntity {
     @OneToMany(() => CarShortVideoLikeEntity, l => l.video)
     likes: CarShortVideoLikeEntity[]
 
+    likesCount?: number
+
+    /** Поставил ли лайк текущий пользователь (заполняется в сервисе) */
+    isLiked?: boolean
+
     // @OneToMany(() => CarShortVideoCommentEntity, c => c.video)
     // comments: CarShortVideoCommentEntity[]
 }

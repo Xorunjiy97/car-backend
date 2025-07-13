@@ -5,7 +5,7 @@ import {
     NotFoundException,
 } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { Repository, FindOptionsWhere, In, MoreThan } from 'typeorm'
+import { Repository, FindOptionsWhere, In, MoreThan, SelectQueryBuilder } from 'typeorm'
 
 import { CarShortVideoEntity } from '../entities/car-short-video.entity'
 import { CarBrandIternal } from 'src/auta_brands_iternal_cars/entities'
@@ -48,7 +48,43 @@ export class CarShortVideoService {
         private readonly userRepo: Repository<User>
     ) { }
 
+    private baseQuery(currentUser?: UserSub) {
+        const qb = this.videoRepo
+            .createQueryBuilder('video')
+            .leftJoinAndSelect('video.brand', 'brand')
+            .leftJoinAndSelect('video.model', 'model')
+            .where('video.moderated = true')
+            .orderBy('video.createdAt', 'DESC')
 
+        /* счётчик лайков */
+        qb.loadRelationCountAndMap('video.likesCount', 'video.likes')
+
+        /* флаг isLiked (0 / 1 → boolean) */
+        if (currentUser) {
+            qb.loadRelationCountAndMap(
+                'video._isLikedTmp',
+                'video.likes',
+                'my_like',
+                (sub) =>
+                    sub.where('my_like.user_id = :uid', { uid: currentUser.sub }),
+            )
+        }
+
+        return qb
+    }
+
+    /* ---------- конвертация сырых 0/1 в boolean ---------- */
+    private async mapIsLiked(qb: SelectQueryBuilder<CarShortVideoEntity>, currentUser?: UserSub) {
+        const videos = await qb.getMany()
+
+        if (currentUser) {
+            videos.forEach((v: any) => {
+                v.isLiked = !!v._isLikedTmp
+                delete v._isLikedTmp
+            })
+        }
+        return videos
+    }
 
     /* ------------------------------------------------------------------ */
     /*  CREATE                                                           */
@@ -102,14 +138,9 @@ export class CarShortVideoService {
     /* ------------------------------------------------------------------ */
 
     /** Публичный список (только модерированные) */
-    async findAll(): Promise<CarShortVideoEntity[]> {
-        return this.videoRepo.find({
-            where: { moderated: true },
-            relations: { brand: true, model: true },
-            order: { createdAt: 'DESC' },
-        })
+    async findAll(currentUser?: UserSub) {
+        return this.mapIsLiked(this.baseQuery(currentUser), currentUser)
     }
-
     /** Немодерированные – только для ADMIN */
     async findAllNoModerated(user: any): Promise<CarShortVideoEntity[]> {
         if (!user || user.role !== 'ADMIN') {
@@ -146,32 +177,17 @@ export class CarShortVideoService {
         }
     }
 
-    /** По бренду */
-    async findByBrand(brandId: number): Promise<CarShortVideoEntity[]> {
-        return this.videoRepo.find({
-            where: {
-                moderated: true,
-                brand: { id: brandId },
-            },
-            relations: { brand: true, model: true },
-            order: { createdAt: 'DESC' },
-        })
+    async findByBrand(brandId: number, currentUser?: UserSub) {
+        const qb = this.baseQuery(currentUser).andWhere('brand.id = :brandId', { brandId })
+        return this.mapIsLiked(qb, currentUser)
     }
 
-    /** По бренду и модели */
-    async findByBrandAndModel(
-        brandId: number,
-        modelId: number,
-    ): Promise<CarShortVideoEntity[]> {
-        return this.videoRepo.find({
-            where: {
-                moderated: true,
-                brand: { id: brandId },
-                model: { id: modelId },
-            },
-            relations: { brand: true, model: true },
-            order: { createdAt: 'DESC' },
-        })
+    /* ---------- по бренду и модели ---------- */
+    async findByBrandAndModel(brandId: number, modelId: number, currentUser?: UserSub) {
+        const qb = this.baseQuery(currentUser)
+            .andWhere('brand.id = :brandId', { brandId })
+            .andWhere('model.id = :modelId', { modelId })
+        return this.mapIsLiked(qb, currentUser)
     }
 
     /* ------------------------------------------------------------------ */
