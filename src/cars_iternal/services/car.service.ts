@@ -173,9 +173,10 @@ export class CarService {
         'brand',
         'model',
         'country',
-        'engine_type',
-        'body_type',
-        'gear_box',
+        'engineType',
+        'bodyType',
+        'gearBox',
+        'technologies'
       ],
     });
   }

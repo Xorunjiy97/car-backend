@@ -79,4 +79,13 @@ export class CarShortVideoController {
     ) {
         return this.service.moderateVideo(id, req.user)
     }
+
+    @Post(':id/like')
+    @UseGuards(JwtAuthGuard)
+    async toggleLike(
+        @Param('id', ParseIntPipe) id: number,
+        @Req() req: Request,
+    ) {
+        return this.service.toggleLike(id, req.user)
+    }
 }

@@ -13,6 +13,7 @@ import { CarModelIternar } from 'src/auto_model_iternal/entities'
 import { StorageService } from 'src/shared/storage/s3.service'
 import { CreateCarShortVideoDto } from '../dto/create-car-short-video.dto'
 import { User } from 'src/users/entities/user.entity';
+import { CarShortVideoLikeEntity } from '../entities/car-short-likes-video.entity'
 
 interface Paginated<T> {
     items: T[]
@@ -39,6 +40,9 @@ export class CarShortVideoService {
         private readonly modelRepo: Repository<CarModelIternar>,
 
         private readonly storageService: StorageService,
+
+        @InjectRepository(CarShortVideoLikeEntity)
+        private readonly likeRepo: Repository<CarShortVideoLikeEntity>,
 
         @InjectRepository(User)
         private readonly userRepo: Repository<User>
@@ -84,6 +88,7 @@ export class CarShortVideoService {
             description: dto.description,
             videoUrl,
             createdBy: { id: +currentUser.sub },
+            phone: dto.phone,
             // moderated остаётся false по умолчанию
         })
 
@@ -183,5 +188,24 @@ export class CarShortVideoService {
 
         video.moderated = true
         return this.videoRepo.save(video)
+    }
+
+    async toggleLike(videoId: number, user: any) {
+        const existing = await this.likeRepo.findOne({
+            where: { video: { id: videoId }, user: { id: user.sub } },
+        })
+
+        if (existing) {
+            await this.likeRepo.remove(existing) // анлайк
+            return { liked: false }
+        }
+
+        await this.likeRepo.save(
+            this.likeRepo.create({
+                video: { id: videoId } as any,
+                user: { id: user.sub } as any,
+            }),
+        )
+        return { liked: true }
     }
 }

@@ -1,5 +1,5 @@
 // src/car_short_videos/dto/create-car-short-video.dto.ts
-import { IsInt, IsOptional, IsString, IsPositive } from 'class-validator'
+import { IsInt, IsOptional, IsString, IsPositive, IsNotEmpty, Matches } from 'class-validator'
 import { Type } from 'class-transformer'
 
 export class CreateCarShortVideoDto {
@@ -16,4 +16,11 @@ export class CreateCarShortVideoDto {
     @IsOptional()
     @IsString()
     description?: string
+
+    @IsString()
+    @IsNotEmpty()
+    @Matches(/^\+?\d{7,15}$/, {
+        message: 'phone must be a valid international phone number',
+    })
+    phone: string
 }
