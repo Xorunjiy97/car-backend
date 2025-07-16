@@ -13,6 +13,7 @@ import {
     Param,
     ParseIntPipe,
     DefaultValuePipe,
+    Delete,
 } from '@nestjs/common'
 import { FileInterceptor } from '@nestjs/platform-express'
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard'
@@ -59,6 +60,49 @@ export class CarShortVideoController {
             return this.service.findByBrand(brandId, currentUser)
         }
         return this.service.findAll(currentUser)
+    }
+
+    @UseGuards(JwtAuthGuard)                    // лайкнутые доступны только авторизованному
+    @Get('liked')
+    getLikedVideos(
+        @Req() req: Request,            // декоратор, возвращающий { sub, role }
+        @Query('page', ParseIntPipe) page = 1,
+        @Query('limit', ParseIntPipe) limit = 20,
+    ) {
+
+        const currentUser = req.user as UserSub
+
+        return this.service.findLikedByUser(currentUser, page, limit)
+    }
+
+    @UseGuards(JwtAuthGuard)
+    @Get('my')
+    getMyVideos(
+        @Req() req: Request,
+        @Query('page', new DefaultValuePipe(1), ParseIntPipe) page = 1,
+        @Query('limit', new DefaultValuePipe(20), ParseIntPipe) limit = 20,
+    ) {
+        const currentUser = req.user as UserSub
+        return this.service.findByAuthor(currentUser, page, limit)
+    }
+
+    @UseGuards(JwtAuthGuard)
+    @Delete(':id')                               // DELETE /car-short-videos/42
+    softDelete(
+        @Param('id', ParseIntPipe) id: number,
+        @Req() req: Request,
+    ) {
+        return this.service.softDelete(id, req.user as UserSub)
+    }
+
+    /* восстановить, если нужно */
+    @UseGuards(JwtAuthGuard)
+    @Patch(':id/restore')                        // PATCH /car-short-videos/42/restore
+    restore(
+        @Param('id', ParseIntPipe) id: number,
+        @Req() req: Request,
+    ) {
+        return this.service.restore(id, req.user as UserSub)
     }
 
     /* ------------------------------------------------------------------ */

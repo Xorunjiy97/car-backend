@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, JoinTable, ManyToMany } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, JoinTable, ManyToMany, OneToMany } from 'typeorm';
 import { CarBrandIternal } from 'src/auta_brands_iternal_cars/entities';
 import { CarModelIternar } from 'src/auto_model_iternal/entities';
 import { EngineModel } from 'src/engine_type/entities/engine.entity';
@@ -8,6 +8,7 @@ import { GearModel } from 'src/gear_box/entities/gear.entity';
 import { CityModel } from 'src/city/entities';
 import { TechnologyAutoModel } from 'src/technology_avto/entities';
 import { User } from 'src/users/entities/user.entity';
+import { CarLikeEntity } from './car-like.entity';
 
 @Entity('cars_iternal')
 export class CarIternal {
@@ -128,5 +129,12 @@ export class CarIternal {
   @ManyToOne(() => User)
   @JoinColumn({ name: 'created_by' })
   createdBy: User
+
+  @OneToMany(() => CarLikeEntity, l => l.car)
+  likes: CarLikeEntity[]
+
+  /* виртуальные поля */
+  likesCount?: number
+  isLiked?: boolean
 }
 

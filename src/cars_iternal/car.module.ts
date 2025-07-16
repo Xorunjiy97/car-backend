@@ -14,10 +14,11 @@ import { CityModel } from 'src/city/entities';
 import { TechnologyAutoModel } from 'src/technology_avto/entities';
 import { CountryManufacturerModel } from 'src/country_manufacturer/entities';
 import { StorageModule } from '../shared/storage/storage.module'
+import { CarLikeEntity } from './entities/car-like.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([CarIternal, TechnologyAutoModel, CountryManufacturerModel, CarBrandIternal, CityModel, CarModelIternar, EngineModel, BodyModel, GearModel]),
+    TypeOrmModule.forFeature([CarIternal, CarLikeEntity, TechnologyAutoModel, CountryManufacturerModel, CarBrandIternal, CityModel, CarModelIternar, EngineModel, BodyModel, GearModel]),
     StorageModule,
     CacheModule.register({ ttl: 3600 }), // ✅ Добавляем кэширование
   ],

@@ -1,6 +1,6 @@
 import { BadRequestException, ForbiddenException, HttpStatus, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, Repository } from 'typeorm';
+import { In, Repository, SelectQueryBuilder } from 'typeorm';
 import { CarIternal } from '../entities/index';
 import { CarBrandIternal } from 'src/auta_brands_iternal_cars/entities';
 import { CarModelIternar } from 'src/auto_model_iternal/entities';
@@ -25,6 +25,13 @@ import {
   IPaginationOptions,
 } from 'nestjs-typeorm-paginate';
 import { GetCarListDto } from '../dto/get-car-list.dto';
+import { CarLikeEntity } from '../entities/car-like.entity';
+
+interface UserSub {
+  sub: number,
+  role: string
+}
+
 
 @Injectable()
 export class CarService {
@@ -44,6 +51,8 @@ export class CarService {
     private readonly gearRepository: Repository<GearModel>,
     @InjectRepository(GearModel)
     private readonly cityRepository: Repository<CityModel>,
+    @InjectRepository(CarLikeEntity)
+    private readonly likeRepo: Repository<CarLikeEntity>,
     @InjectRepository(TechnologyAutoModel)
     private readonly technologyRepository: Repository<TechnologyAutoModel>,
     private readonly storageService: StorageService,
@@ -51,13 +60,11 @@ export class CarService {
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
     // cityRepository
   ) { }
-
-  async findAll(
+  private buildListQuery(
     filters: GetCarListDto,
-  ): Promise<Pagination<CarIternal>> {
-    const { page, limit } = filters
-
-    /* ---------- QueryBuilder с JOIN’ами ---------- */
+    currentUser?: UserSub,
+    withCounts = true,          // 👈 новый флаг
+  ) {
     const qb = this.carRepository
       .createQueryBuilder('car')
       .leftJoinAndSelect('car.brand', 'brand')
@@ -70,7 +77,7 @@ export class CarService {
       .leftJoinAndSelect('car.city', 'city') // если нужно
       .where('car.moderated = :moderated', { moderated: true })
 
-    /* ---------- фильтры по справочникам ---------- */
+    /* ... фильтры ... */
     if (filters.brandId)
       qb.andWhere('brand.id = :brandId', { brandId: filters.brandId })
 
@@ -118,11 +125,58 @@ export class CarService {
     if (filters.yearMax)
       qb.andWhere('car.year <= :yearMax', { yearMax: filters.yearMax })
 
-    /* ---------- пагинация ---------- */
-    const [items, total] = await qb
+    /* --- лайки и isLiked --- */
+    if (withCounts) {
+      qb.loadRelationCountAndMap('car.likesCount', 'car.likes')
+
+      console.log(currentUser, 'currentUser')
+
+      if (currentUser) {
+        qb.loadRelationCountAndMap(
+          'car._isLikedTmp',
+          'car.likes',
+          'my_like',
+          sub => sub.where('my_like.user_id = :uid', { uid: currentUser.sub }),
+        )
+      }
+    }
+
+    return qb
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* 2. helper: превращаем _isLikedTmp → isLiked:boolean                */
+  /* ------------------------------------------------------------------ */
+  private async mapIsLiked(
+    qb: SelectQueryBuilder<CarIternal>,
+    currentUser?: UserSub,
+  ) {
+    const items = await qb.getMany()
+    if (currentUser) {
+      items.forEach((c: any) => {
+        c.isLiked = !!c._isLikedTmp
+        delete c._isLikedTmp
+      })
+    }
+    return items
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* 3. основной метод list + пагинация                                 */
+  /* ------------------------------------------------------------------ */
+  async findAll(filters: GetCarListDto, currentUser?: UserSub) {
+    const { page, limit } = filters
+
+    // 1) QB со счётчиками — для самой страницы
+    const pageQB = this.buildListQuery(filters, currentUser, true)
       .skip((page - 1) * limit)
       .take(limit)
-      .getManyAndCount()
+
+    const items = await this.mapIsLiked(pageQB, currentUser)
+
+    // 2) QB без счётчиков — только для общего total
+    const total = await this.buildListQuery(filters, undefined, false)
+      .getCount()
 
     return {
       items,
@@ -134,6 +188,31 @@ export class CarService {
         currentPage: page,
       },
     }
+  }
+
+  async toggleLike(carId: number, user: any) {
+    // проверяем, есть ли лайк
+    const existing = await this.likeRepo.findOne({
+      where: { car: { id: carId }, user: { id: user.sub } },
+    })
+
+    if (existing) {
+      await this.likeRepo.remove(existing)          // 👈 анлайк
+    } else {
+      await this.likeRepo.save(
+        this.likeRepo.create({
+          car: { id: carId } as any,
+          user: { id: user.sub } as any,
+        }),
+      )                                             // 👈 лайк
+    }
+
+    // пересчитываем количество
+    const likesCount = await this.likeRepo.count({
+      where: { car: { id: carId } },
+    })
+
+    return { liked: !existing, likesCount }
   }
 
   async findAllNoModerated(user: any): Promise<CarIternal[]> {

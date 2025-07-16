@@ -55,7 +55,7 @@ export class CarShortVideoService {
             .leftJoinAndSelect('video.model', 'model')
             .where('video.moderated = true')
             .orderBy('video.createdAt', 'DESC')
-
+            .andWhere('video.deleted = false')
         /* счётчик лайков */
         qb.loadRelationCountAndMap('video.likesCount', 'video.likes')
 
@@ -84,6 +84,23 @@ export class CarShortVideoService {
             })
         }
         return videos
+    }
+
+    async findLikedByUser(
+        currentUser: UserSub,
+        page = 1,
+        limit = 20,
+    ): Promise<CarShortVideoEntity[]> {
+        /* базовый запрос со всеми нужными полями */
+        const qb = this.baseQuery(currentUser)
+            /*             ↑ добавляет brand, model, likesCount, _isLikedTmp */
+            .innerJoin('video.likes', 'lk', 'lk.user_id = :uid', {
+                uid: currentUser.sub,
+            })
+            .skip((page - 1) * limit)
+            .take(limit)
+
+        return this.mapIsLiked(qb, currentUser)
     }
 
     /* ------------------------------------------------------------------ */
@@ -131,6 +148,31 @@ export class CarShortVideoService {
         return this.videoRepo.save(video)
     }
 
+    async softDelete(videoId: number, user: UserSub) {
+        const video = await this.videoRepo.findOneBy({ id: videoId })
+        if (!video) throw new NotFoundException()
+
+        // автор или ADMIN может удалять
+        if (video.createdById !== user.sub && user.role !== 'ADMIN') {
+            throw new ForbiddenException('Forbidden')
+        }
+
+        video.deleted = true
+        await this.videoRepo.save(video)
+        return { success: true }
+    }
+
+    async restore(videoId: number, user: UserSub) {
+        const video = await this.videoRepo.findOneBy({ id: videoId })
+        if (!video) throw new NotFoundException()
+
+        // восстановить может только ADMIN
+        if (user.role !== 'ADMIN') throw new ForbiddenException('Forbidden')
+
+        video.deleted = false
+        await this.videoRepo.save(video)
+        return { success: true }
+    }
 
 
     /* ------------------------------------------------------------------ */
@@ -177,6 +219,19 @@ export class CarShortVideoService {
         }
     }
 
+    async findByAuthor(
+        currentUser: UserSub,
+        page = 1,
+        limit = 20,
+    ) {
+        const qb = this.baseQuery(currentUser)
+            .andWhere('video.createdBy = :uid', { uid: currentUser.sub })
+            .skip((page - 1) * limit)
+            .take(limit)
+
+        return this.mapIsLiked(qb, currentUser)
+    }
+
     async findByBrand(brandId: number, currentUser?: UserSub) {
         const qb = this.baseQuery(currentUser).andWhere('brand.id = :brandId', { brandId })
         return this.mapIsLiked(qb, currentUser)
@@ -206,22 +261,30 @@ export class CarShortVideoService {
         return this.videoRepo.save(video)
     }
 
+    /** toggle like / unlike */
     async toggleLike(videoId: number, user: any) {
+        // проверяем, есть ли лайк
         const existing = await this.likeRepo.findOne({
             where: { video: { id: videoId }, user: { id: user.sub } },
         })
 
         if (existing) {
-            await this.likeRepo.remove(existing) // анлайк
-            return { liked: false }
+            await this.likeRepo.remove(existing)          // 👈 анлайк
+        } else {
+            await this.likeRepo.save(
+                this.likeRepo.create({
+                    video: { id: videoId } as any,
+                    user: { id: user.sub } as any,
+                }),
+            )                                             // 👈 лайк
         }
 
-        await this.likeRepo.save(
-            this.likeRepo.create({
-                video: { id: videoId } as any,
-                user: { id: user.sub } as any,
-            }),
-        )
-        return { liked: true }
+        // пересчитываем количество
+        const likesCount = await this.likeRepo.count({
+            where: { video: { id: videoId } },
+        })
+
+        return { liked: !existing, likesCount }
     }
+
 }

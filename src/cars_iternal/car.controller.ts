@@ -13,7 +13,9 @@ import {
   UseGuards,
   BadRequestException,
   Req,
-  Patch
+  Patch,
+  Injectable,
+  ParseIntPipe
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -34,7 +36,14 @@ import { Public } from '../auth/decorators/can-be-public.decorator'; // ✅ Им
 import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import { GetCarListDto } from './dto/get-car-list.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { AuthGuard } from '@nestjs/passport';
 
+@Injectable()
+export class JwtOptionalGuard extends AuthGuard('jwt') {
+  handleRequest(err: any, user: any) {
+    return user ?? null   // нет пользователя – продолжаем как аноним
+  }
+}
 
 @ApiTags('Cars Iternal') // ✅ Swagger категория
 @Controller('cars-iternal')
@@ -61,10 +70,11 @@ export class CarController {
     type: Number,
     description: 'Количество элементов на странице',
   })
-  @Public()
+  @UseGuards(JwtOptionalGuard)
   @Get()
-  async findAll(@Query() query: GetCarListDto) {
-    return this.carService.findAll(query)
+  async findAll(@Req() req: Request, @Query() query: GetCarListDto,) {
+    const user = req.user as any
+    return this.carService.findAll(query, user)
   }
   @Post(':id/upload-video')
   @UseGuards(JwtAuthGuard)
@@ -190,5 +200,14 @@ export class CarController {
     } else {
       res.status(404).json({ message: 'File not found' });
     }
+  }
+
+  @Post(':id/like')
+  @UseGuards(JwtAuthGuard)
+  async toggleLike(
+    @Param('id', ParseIntPipe) id: number,
+    @Req() req: Request,
+  ) {
+    return this.carService.toggleLike(id, req.user)
   }
 }

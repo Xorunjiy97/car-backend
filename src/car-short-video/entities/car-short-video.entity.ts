@@ -27,6 +27,9 @@ export class CarShortVideoEntity {
     @Column({ nullable: false })
     videoUrl: string;
 
+    @Column({ default: false })
+    deleted: boolean
+
     @CreateDateColumn()
     createdAt: Date;
 
