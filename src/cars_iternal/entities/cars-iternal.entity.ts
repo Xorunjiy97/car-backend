@@ -133,6 +133,9 @@ export class CarIternal {
   @OneToMany(() => CarLikeEntity, l => l.car)
   likes: CarLikeEntity[]
 
+  @Column({ default: false })
+  deleted: boolean
+
   /* виртуальные поля */
   likesCount?: number
   isLiked?: boolean

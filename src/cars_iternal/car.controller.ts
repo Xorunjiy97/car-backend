@@ -38,6 +38,11 @@ import { GetCarListDto } from './dto/get-car-list.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { AuthGuard } from '@nestjs/passport';
 
+interface UserSub {
+  sub: number,
+  role: string
+}
+
 @Injectable()
 export class JwtOptionalGuard extends AuthGuard('jwt') {
   handleRequest(err: any, user: any) {
@@ -76,11 +81,7 @@ export class CarController {
     const user = req.user as any
     return this.carService.findAll(query, user)
   }
-  @Post(':id/upload-video')
-  @UseGuards(JwtAuthGuard)
-  @UseInterceptors(
-    FileFieldsInterceptor([{ name: 'video', maxCount: 1 }]) // без multerConfig
-  )
+
   @UseGuards(JwtAuthGuard)
   @Get('is-owner')
   async isOwner(@Query('id') id: number, @Req() req: Request) {
@@ -93,6 +94,12 @@ export class CarController {
     const isOwner = await this.carService.isCreatedByUser(id, { id: user.sub })
     return { isOwner }
   }
+
+  @Post(':id/upload-video')
+  @UseGuards(JwtAuthGuard)
+  @UseInterceptors(
+    FileFieldsInterceptor([{ name: 'video', maxCount: 1 }]) // без multerConfig
+  )
   async uploadVideo(
     @Param('id') id: number,
     @UploadedFiles() files: { video?: Express.Multer.File[] },
@@ -118,6 +125,27 @@ export class CarController {
   ) {
     return this.carService.moderateService(id, req.user)
   }
+  @Get('my')
+  @UseGuards(JwtAuthGuard)
+  getCarsByCurrentUser(@Req() req: Request) {
+    const currentUser = req.user as any
+    return this.carService.findByAuthor(currentUser)
+  }
+
+  @Get('liked')
+  @UseGuards(JwtAuthGuard)                    // лайкнутые доступны только авторизованному
+  getLikedVideos(
+    @Req() req: Request,            // декоратор, возвращающий { sub, role }
+
+  ) {
+
+    console.log(req.user, 'ssss')
+
+    const currentUser = req.user as any
+
+    return this.carService.findLikedByUser(currentUser)
+  }
+
   @Public()
   @Get(':id')
   @ApiOperation({ summary: 'Получить автомобиль по ID' })
@@ -210,4 +238,6 @@ export class CarController {
   ) {
     return this.carService.toggleLike(id, req.user)
   }
+
+
 }

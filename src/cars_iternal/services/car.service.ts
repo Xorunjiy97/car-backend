@@ -143,6 +143,72 @@ export class CarService {
 
     return qb
   }
+  async findByAuthor(currentUser: UserSub): Promise<CarIternal[]> {
+    const userId = Number(currentUser?.sub)
+
+    if (!userId || isNaN(userId)) {
+      throw new BadRequestException('Некорректный ID пользователя')
+    }
+
+    const qb = this.carRepository
+      .createQueryBuilder('car')
+      .leftJoinAndSelect('car.brand', 'brand')
+      .leftJoinAndSelect('car.model', 'model')
+      .leftJoinAndSelect('car.country', 'country')
+      .leftJoinAndSelect('car.engineType', 'engine')
+      .leftJoinAndSelect('car.bodyType', 'body')
+      .leftJoinAndSelect('car.gearBox', 'gear')
+      .leftJoinAndSelect('car.technologies', 'tech')
+      .leftJoinAndSelect('car.city', 'city')
+      .where('car.createdBy = :userId', { userId })
+      .andWhere('car.deleted IS NOT TRUE') // если используешь soft delete
+      .loadRelationCountAndMap('car.likesCount', 'car.likes')
+      .loadRelationCountAndMap(
+        'car._isLikedTmp',
+        'car.likes',
+        'my_like',
+        sub => sub.where('my_like.user_id = :uid', { uid: userId }),
+      )
+
+    return this.mapIsLiked(qb, currentUser)
+  }
+
+  async findLikedByUser(currentUser: UserSub): Promise<CarIternal[]> {
+    console.log('currentUser:', currentUser)
+    console.log('currentUser.sub:', currentUser?.sub, typeof currentUser?.sub)
+
+    const userId = Number(currentUser?.sub)
+
+    if (!userId || isNaN(userId)) {
+      throw new BadRequestException('Некорректный ID пользователя')
+    }
+    console.log('🚨 currentUser.sub в cars:', currentUser?.sub, typeof currentUser?.sub)
+    const qb = this.carRepository
+      .createQueryBuilder('car')
+      .innerJoin('car.likes', 'like', 'like.user_id = :userId', {
+        userId: currentUser.sub,
+      })
+      .leftJoinAndSelect('car.brand', 'brand')
+      .leftJoinAndSelect('car.model', 'model')
+      .leftJoinAndSelect('car.country', 'country')
+      .leftJoinAndSelect('car.engineType', 'engine')
+      .leftJoinAndSelect('car.bodyType', 'body')
+      .leftJoinAndSelect('car.gearBox', 'gear')
+      .leftJoinAndSelect('car.technologies', 'tech')
+      .leftJoinAndSelect('car.city', 'city')
+      .loadRelationCountAndMap('car.likesCount', 'car.likes')
+      .loadRelationCountAndMap(
+        'car._isLikedTmp',
+        'car.likes',
+        'my_like',
+        sub => sub.where('my_like.user_id = :uid', { uid: userId }),
+      )
+      .where('car.moderated = :moderated', { moderated: true })
+      .andWhere('car.deleted = false')
+
+
+    return this.mapIsLiked(qb, currentUser)
+  }
 
   /* ------------------------------------------------------------------ */
   /* 2. helper: превращаем _isLikedTmp → isLiked:boolean                */
@@ -189,6 +255,9 @@ export class CarService {
       },
     }
   }
+
+
+
 
   async toggleLike(carId: number, user: any) {
     // проверяем, есть ли лайк
@@ -269,20 +338,22 @@ export class CarService {
     }
 
     // ✅ Удалим связанные фотографии (локально, если есть)
-    const allPhotoPaths = [...(car.photos || []), car.avatar].filter(Boolean);
+    // const allPhotoPaths = [...(car.photos || []), car.avatar].filter(Boolean);
 
-    for (const photoPath of allPhotoPaths) {
-      const fileName = photoPath.split('/').pop();
-      const fullPath = path.join(__dirname, '../../../uploads/cars', fileName);
+    // for (const photoPath of allPhotoPaths) {
+    //   const fileName = photoPath.split('/').pop();
+    //   const fullPath = path.join(__dirname, '../../../uploads/cars', fileName);
 
-      if (fs.existsSync(fullPath)) {
-        fs.unlinkSync(fullPath);
-      }
-    }
+    //   if (fs.existsSync(fullPath)) {
+    //     fs.unlinkSync(fullPath);
+    //   }
+    // }
 
-    await this.carRepository.remove(car);
+    // await this.carRepository.remove(car);
+    car.deleted = true;
+    await this.carRepository.save(car);
 
-    return { message: `Автомобиль с ID ${id} удалён` };
+    return { message: `Автомобиль с ID ${id} помечен как удалённый` };
   }
   async isCreatedByUser(carId: number, user: any): Promise<boolean> {
     const service = await this.carRepository.findOne({
