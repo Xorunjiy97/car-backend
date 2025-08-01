@@ -26,6 +26,9 @@ import {
 } from 'nestjs-typeorm-paginate';
 import { GetCarListDto } from '../dto/get-car-list.dto';
 import { CarLikeEntity } from '../entities/car-like.entity';
+import { CarPriceHistory, PriceChangeType } from '../entities/car-price-history.entity';
+import { UpdateCarDto } from '../dto/update-car.dto';
+import { UpdateCarPriceDto } from '../dto/update-price.dto';
 
 interface UserSub {
   sub: number,
@@ -47,6 +50,8 @@ export class CarService {
     private readonly engineRepository: Repository<EngineModel>,
     @InjectRepository(BodyModel)
     private readonly bodyRepository: Repository<BodyModel>,
+    @InjectRepository(CarPriceHistory)
+    private readonly priceHistoryRepo: Repository<CarPriceHistory>,
     @InjectRepository(GearModel)
     private readonly gearRepository: Repository<GearModel>,
     @InjectRepository(GearModel)
@@ -85,6 +90,12 @@ export class CarService {
       qb.andWhere('country.id IN (:...countryIds)', {
         countryIds: filters.countryId,
       })
+if (filters.numberOfSeats)
+  qb.andWhere('car.numberOfSeats = :numberOfSeats', {
+    numberOfSeats: filters.numberOfSeats,
+  })
+
+
 
     if (filters.engineTypeId?.length)
       qb.andWhere('engine.id IN (:...engineTypeIds)', {
@@ -142,6 +153,139 @@ export class CarService {
     }
 
     return qb
+  }
+
+  async updateCar(
+    id: number,
+    dto: UpdateCarDto,
+    avatarFile: Express.Multer.File | undefined,
+    files: Express.Multer.File[] | undefined,
+    user: any,
+  ): Promise<CarIternal> {
+    const car = await this.carRepository.findOne({
+      where: { id },
+      relations: ['createdBy'],
+    })
+
+    if (!car) throw new NotFoundException('Авто не найдено')
+
+    // 🔐 Проверка прав: только автор может редактировать
+    if (car.createdBy.id !== user.sub) {
+      throw new ForbiddenException('Нет доступа к этому авто')
+    }
+
+    // 🎯 Проверка изменения цены
+    if (dto.price !== undefined && dto.price !== car.price) {
+      const changeType: PriceChangeType =
+        dto.price > car.price ? 'increase' : 'decrease'
+
+      await this.priceHistoryRepo.save(
+        this.priceHistoryRepo.create({
+          car,
+          price: car.price,
+          changeType,
+        }),
+      )
+    }
+
+    // 📦 Загрузка фото и аватара
+    const avatarUrl = avatarFile ? `/uploads/cars/${avatarFile.filename}` : car.avatar
+    const photoUrls = Array.isArray(files)
+      ? files.map(f => `/uploads/cars/${f.filename}`)
+      : car.photos
+
+    // 🧠 Обновляем справочники, если были изменены
+    const [
+      model,
+      brand,
+      country,
+      city,
+      engine,
+      body,
+      gear,
+      technologies,
+    ] = await Promise.all([
+      dto.modelId ? this.modelRepository.findOne({ where: { id: dto.modelId } }) : car.model,
+      dto.brandId ? this.brandRepository.findOne({ where: { id: dto.brandId } }) : car.brand,
+      dto.countryId ? this.countryRepository.findOne({ where: { id: dto.countryId } }) : car.country,
+      dto.cityId ? this.cityRepository.findOne({ where: { id: dto.cityId } }) : car.city,
+      dto.engineTypeId ? this.engineRepository.findOne({ where: { id: dto.engineTypeId } }) : car.engineType,
+      dto.bodyTypeId ? this.bodyRepository.findOne({ where: { id: dto.bodyTypeId } }) : car.bodyType,
+      dto.gearBoxId ? this.gearRepository.findOne({ where: { id: dto.gearBoxId } }) : car.gearBox,
+      dto.technologyIds ? this.technologyRepository.findBy({ id: In(dto.technologyIds) }) : car.technologies,
+    ])
+
+    // 🧩 Обновление
+    Object.assign(car, {
+      hpCount: dto.hp_count ?? car.hpCount,
+      numberOfSeats: dto.number_of_seats ?? car.numberOfSeats,
+      color: dto.color ?? car.color,
+      vinCode: dto.vin_code ?? car.vinCode,
+      enginePower: dto.engine_power ?? car.enginePower,
+      mileage: dto.mileage ?? car.mileage,
+      year: dto.year ?? car.year,
+      price: dto.price ?? car.price,
+      creditPosible: dto.credit_posible ?? car.creditPosible,
+      barterPosible: dto.barter_posible ?? car.barterPosible,
+      crashed: dto.crashed ?? car.crashed,
+      collored: dto.collored ?? car.collored,
+      needsRenovation: dto.needs_renovation ?? car.needsRenovation,
+      userName: dto.user_name ?? car.userName,
+      userEmail: dto.user_email ?? car.userEmail,
+      userPhone: dto.user_phone ?? car.userPhone,
+      description: dto.description ?? car.description,
+      moderated: false, // помечаем как требующее повторной модерации
+      avatar: avatarUrl,
+      photos: photoUrls,
+      videoLink: dto.videoLink ?? car.videoLink,
+      model,
+      brand,
+      country,
+      city,
+      engineType: engine,
+      bodyType: body,
+      gearBox: gear,
+      technologies,
+    })
+
+    return this.carRepository.save(car)
+  }
+  async updatePriceOnly(
+    id: number,
+    dto: UpdateCarPriceDto,
+    user: any,
+  ): Promise<CarIternal> {
+    const car = await this.carRepository.findOne({
+      where: { id },
+      relations: ['createdBy'],
+    })
+
+    if (!car) {
+      throw new NotFoundException('Автомобиль не найден')
+    }
+
+    if (car.createdBy.id !== user.sub) {
+      throw new ForbiddenException('Нет доступа к редактированию этой машины')
+    }
+
+    // Если цена не изменилась — ничего не делаем
+    if (dto.price === car.price) return car
+
+    // Логируем историю изменения цены
+    const changeType = dto.price > car.price ? 'increase' : 'decrease'
+
+    await this.priceHistoryRepo.save(
+      this.priceHistoryRepo.create({
+        car,
+        price: car.price,
+        changeType,
+      }),
+    )
+
+    // Обновляем только цену
+    car.price = dto.price
+
+    return this.carRepository.save(car)
   }
   async findByAuthor(currentUser: UserSub): Promise<CarIternal[]> {
     const userId = Number(currentUser?.sub)
@@ -209,7 +353,17 @@ export class CarService {
 
     return this.mapIsLiked(qb, currentUser)
   }
+  async getPriceHistory(carId: number): Promise<CarPriceHistory[]> {
+    const car = await this.carRepository.findOne({ where: { id: carId } })
+    if (!car) {
+      throw new NotFoundException('Машина не найдена')
+    }
 
+    return this.priceHistoryRepo.find({
+      where: { car: { id: carId } },
+      order: { changedAt: 'DESC' },
+    })
+  }
   /* ------------------------------------------------------------------ */
   /* 2. helper: превращаем _isLikedTmp → isLiked:boolean                */
   /* ------------------------------------------------------------------ */

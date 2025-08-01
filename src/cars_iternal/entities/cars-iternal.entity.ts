@@ -9,12 +9,16 @@ import { CityModel } from 'src/city/entities';
 import { TechnologyAutoModel } from 'src/technology_avto/entities';
 import { User } from 'src/users/entities/user.entity';
 import { CarLikeEntity } from './car-like.entity';
+import { CarPriceHistory } from './car-price-history.entity';
 
 @Entity('cars_iternal')
 export class CarIternal {
   /* ---------- PK ---------- */
   @PrimaryGeneratedColumn()
   id: number
+
+  @OneToMany(() => CarPriceHistory, (ph) => ph.car)
+  priceHistory: CarPriceHistory[]
 
   /* ---------- scalar ---------- */
 

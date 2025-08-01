@@ -85,6 +85,15 @@ export class CarShortVideoService {
         }
         return videos
     }
+    async findOne(id: number, currentUser?: UserSub): Promise<CarShortVideoEntity> {
+        const qb = this.baseQuery(currentUser).andWhere('video.id = :id', { id })
+
+        const result = await this.mapIsLiked(qb, currentUser)
+        const video = result[0]
+
+        if (!video) throw new NotFoundException('Видео не найдено')
+        return video
+    }
 
     async findLikedByUser(
         currentUser: UserSub,

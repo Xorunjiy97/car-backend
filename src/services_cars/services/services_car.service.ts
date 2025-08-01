@@ -13,12 +13,15 @@ import { ForbiddenException } from '@nestjs/common'
 import { User } from 'src/users/entities/user.entity';
 import { CarServiceFiltersDto } from '../dto/car-service-filters.dto';
 import { UpdateServiceDto } from '../dto/updete-service.dto';
+import { CarServiceWorkingDay } from '../entities/car-service-working-day.entity';
 
 @Injectable()
 export class CarServiceService {
     constructor(
         @InjectRepository(CarServiceEntity)
         private readonly repo: Repository<CarServiceEntity>,
+        @InjectRepository(CarServiceWorkingDay)
+        private readonly workingDaysRepo: Repository<CarServiceWorkingDay>,
         @InjectRepository(CountryModel)
         private readonly cityRepo: Repository<CountryModel>,
         @InjectRepository(CarBrand)
@@ -59,9 +62,12 @@ export class CarServiceService {
         const photoUrls = Array.isArray(photoFiles)
             ? photoFiles.map((file) => `/uploads/car-services/${file.filename}`)
             : []
-
+        const {
+            workingDays, // <- исключаем
+            ...serviceData
+        } = dto
         const service = this.repo.create({
-            ...dto,
+            ...serviceData,
             city,
             brands,
             masterTypes,
@@ -71,8 +77,19 @@ export class CarServiceService {
             createdBy: user.id,
             videoLink: null, // ← пока пусто, обновится позже
         })
+        const savedService = await this.repo.save(service)
 
-        return this.repo.save(service)
+        // Теперь сохраняем рабочие дни
+        if (workingDays && workingDays.length) {
+            const workingDayEntities = workingDays.map((day) =>
+                this.workingDaysRepo.create({
+                    dayOfWeek: day,
+                    service: savedService,
+                }),
+            )
+            await this.workingDaysRepo.save(workingDayEntities)
+        }
+        return savedService
     }
     async uploadVideoToS3(serviceId: number, videoFile: Express.Multer.File) {
         const videoUrl = await this.storageService.uploadVideo(videoFile)

@@ -16,11 +16,11 @@ export class CreateCarServiceDto {
     @ArrayNotEmpty()
     @IsInt({ each: true })
     brandIds: number[]
-  
+
     @ApiProperty({
-      example: [1, 3],
-      description: 'ID типов мастеров (в JSON формате в FormData)',
-      type: [Number],
+        example: [1, 3],
+        description: 'ID типов мастеров (в JSON формате в FormData)',
+        type: [Number],
     })
     @Transform(({ value }) => JSON.parse(value))
     @IsArray()
@@ -55,6 +55,12 @@ export class CreateCarServiceDto {
     @IsOptional()
     @IsString()
     videoLink?: string;
+
+    @Transform(({ value }) => JSON.parse(value))
+    @IsArray()
+    @ArrayNotEmpty()
+    @IsInt({ each: true })
+    workingDays: number[]
 
     @ApiProperty({
         type: 'string',

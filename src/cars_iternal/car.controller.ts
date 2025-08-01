@@ -37,6 +37,9 @@ import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import { GetCarListDto } from './dto/get-car-list.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { AuthGuard } from '@nestjs/passport';
+import { UpdateCarDto } from './dto/update-car.dto';
+import { UpdateCarPriceDto } from './dto/update-price.dto';
+import { CarPriceHistory } from './entities/car-price-history.entity';
 
 interface UserSub {
   sub: number,
@@ -218,6 +221,40 @@ export class CarController {
 
     return await this.carService.create(dto, avatarFile, photoFiles, { id: user.sub });
   }
+
+  @Patch(':id')
+  @UseInterceptors(FileFieldsInterceptor([
+    { name: 'avatar', maxCount: 1 },
+    { name: 'photos', maxCount: 21 },
+  ]))
+  async updateCar(
+    @Param('id') id: number,
+    @Body() dto: UpdateCarDto,
+    @UploadedFiles()
+    files: {
+      avatar?: Express.Multer.File[],
+      photos?: Express.Multer.File[],
+    },
+    @Req() req: Request,
+  ) {
+    const user = req.user as any
+    return this.carService.updateCar(
+      Number(id),
+      dto,
+      files?.avatar?.[0],
+      files?.photos,
+      user,
+    )
+  }
+  @Patch(':id/price')
+  async updateCarPrice(
+    @Param('id') id: number,
+    @Body() dto: UpdateCarPriceDto,
+    @Req() req: Request,
+  ) {
+    const user = req.user as any
+    return this.carService.updatePriceOnly(+id, dto, user)
+  }
   // ✅ API для получения фото по URL
   @Get('photo/:filename')
   @ApiOperation({ summary: 'Получить фото по имени файла' })
@@ -238,6 +275,11 @@ export class CarController {
   ) {
     return this.carService.toggleLike(id, req.user)
   }
-
+  @Get(':id/price-history')
+  async getPriceHistory(
+    @Param('id') id: number,
+  ): Promise<CarPriceHistory[]> {
+    return this.carService.getPriceHistory(+id)
+  }
 
 }

@@ -134,4 +134,8 @@ export class CarShortVideoController {
     ) {
         return this.service.toggleLike(id, req.user)
     }
+    @Get(':id')
+    async getVideoById(@Param('id') id: number) {
+        return this.service.findOne(+id)
+    }
 }
