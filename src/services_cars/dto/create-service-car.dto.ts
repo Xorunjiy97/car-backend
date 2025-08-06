@@ -1,6 +1,7 @@
-import { IsString, IsInt, IsArray, IsOptional, ArrayNotEmpty } from 'class-validator';
+import { IsString, IsInt, IsArray, IsOptional, ArrayNotEmpty, ValidateNested, IsBoolean } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
-import { Transform } from 'class-transformer'
+import { Transform, Type } from 'class-transformer'
+import { WorkingDayDto } from './working-day.dto';
 
 export class CreateCarServiceDto {
     @ApiProperty({ example: 'г. Баку, ул. Нефтяников, 12', description: 'Адрес сервиса' })
@@ -56,11 +57,23 @@ export class CreateCarServiceDto {
     @IsString()
     videoLink?: string;
 
-    @Transform(({ value }) => JSON.parse(value))
-    @IsArray()
-    @ArrayNotEmpty()
-    @IsInt({ each: true })
-    workingDays: number[]
+    @ApiProperty({
+        description: 'Рабочие дни (JSON строка)',
+        example: `[{"dayOfWeek":0,"startTime":"09:00","endTime":"18:00"}]`,
+        type: String,
+    })
+    @IsOptional()
+    workingDays: any
+
+    @IsInt()
+    bookingIntervalMinutes: number
+
+    @IsInt()
+    maxAppointmentsPerSlot: number
+
+    @IsBoolean()
+    showCalendar: boolean
+
 
     @ApiProperty({
         type: 'string',

@@ -71,6 +71,15 @@ export class CarServiceEntity {
     @OneToMany(() => ScheduleException, (ex) => ex.service)
     exceptions: ScheduleException[]
 
+    @Column({ type: 'int', default: 15 })
+    bookingIntervalMinutes: number // интервал между записями, напр. 10, 15, 30
+
+    @Column({ type: 'int', default: 1 })
+    maxAppointmentsPerSlot: number // сколько людей могут записаться на 1 слот
+
+    @Column({ type: 'boolean', default: true })
+    showCalendar: boolean // показывать календарь или нет
+
     @ManyToOne(() => User, { eager: false })
     @JoinColumn({ name: 'created_by' })
     createdBy: User; // <<< Поле кто создал

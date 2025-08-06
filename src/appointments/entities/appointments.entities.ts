@@ -18,6 +18,9 @@ export class Appointment {
     @Column({ type: 'text' })
     description: string // Описание работ
 
+    @Column({ nullable: true })
+    phoneNumber: string
+
     @Column()
     date: string // '2025-08-01'
 

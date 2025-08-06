@@ -7,6 +7,7 @@ import {
     Patch,
     ParseIntPipe,
     BadRequestException,
+    Query,
 } from '@nestjs/common'
 import { AppointmentsService } from './appointments.service'
 import { CreateAppointmentDto } from './dto/create-appointment.dto'
@@ -22,9 +23,18 @@ export class AppointmentsController {
     }
 
     @Get(':serviceId')
-    async getByService(@Param('serviceId', ParseIntPipe) serviceId: number) {
-        return this.appointmentsService.getByService(serviceId)
+    async getByService(
+        @Param('serviceId', ParseIntPipe) serviceId: number,
+        @Query('date') date: string,
+    ) {
+        return this.appointmentsService.getByService(serviceId, date)
     }
+
+    @Get('one/:id')
+    async getOne(@Param('id', ParseIntPipe) id: number) {
+        return this.appointmentsService.findOne(id)
+    }
+
 
     @Patch(':id/status')
     async updateStatus(

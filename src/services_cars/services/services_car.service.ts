@@ -14,6 +14,9 @@ import { User } from 'src/users/entities/user.entity';
 import { CarServiceFiltersDto } from '../dto/car-service-filters.dto';
 import { UpdateServiceDto } from '../dto/updete-service.dto';
 import { CarServiceWorkingDay } from '../entities/car-service-working-day.entity';
+import { WorkingDayDto } from '../dto/working-day.dto';
+import { plainToInstance } from 'class-transformer';
+import { validateSync } from 'class-validator';
 
 @Injectable()
 export class CarServiceService {
@@ -38,34 +41,60 @@ export class CarServiceService {
         photoFiles: Express.Multer.File[],
         user: any
     ): Promise<CarServiceEntity> {
+        console.log(dto.workingDays, 'dto')
+
         const city = await this.cityRepo.findOne({ where: { id: dto.cityId } })
         if (!city) {
-            throw new Error('Invalid city ID')
+            throw new BadRequestException('Invalid city ID')
         }
 
         const brands = await this.brandRepo.find({
             where: { id: In(dto.brandIds) },
         })
         if (!brands.length) {
-            throw new Error('Invalid brand IDs')
+            throw new BadRequestException('Invalid brand IDs')
         }
 
         const masterTypes = await this.masterRepo.find({
             where: { id: In(dto.masterTypeIds) },
         })
         if (!masterTypes.length) {
-            throw new Error('Invalid master type IDs')
+            throw new BadRequestException('Invalid master type IDs')
         }
 
-        const avatarUrl = avatarFile ? `/uploads/car-services/${avatarFile.filename}` : null
+        const avatarUrl = avatarFile
+            ? `/uploads/car-services/${avatarFile.filename}`
+            : null
 
         const photoUrls = Array.isArray(photoFiles)
             ? photoFiles.map((file) => `/uploads/car-services/${file.filename}`)
             : []
+
+        // 🔽 1. Парсим workingDays из строки
+        let parsedWorkingDays: any = []
+        console.log(dto, 'dto')
+        try {
+            const raw = typeof dto.workingDays === 'string' ? JSON.parse(dto.workingDays) : dto.workingDays
+            parsedWorkingDays = plainToInstance(WorkingDayDto, raw)
+
+            const validationErrors = parsedWorkingDays
+                .map((item) => validateSync(item))
+                .flat()
+
+            if (validationErrors.length > 0) {
+                console.error('❌ WorkingDays validation errors:', validationErrors)
+                throw new BadRequestException('Invalid workingDays structure')
+            }
+        } catch (e) {
+            throw new BadRequestException('Invalid JSON format in workingDays')
+        }
+
+        // 🔽 2. Сохраняем сам сервис
         const {
-            workingDays, // <- исключаем
+            workingDays, // исключаем из dto
             ...serviceData
         } = dto
+        console.log(workingDays, 'workingDays')
         const service = this.repo.create({
             ...serviceData,
             city,
@@ -75,20 +104,24 @@ export class CarServiceService {
             photos: photoUrls,
             moderated: false,
             createdBy: user.id,
-            videoLink: null, // ← пока пусто, обновится позже
+            videoLink: null,
         })
+
         const savedService = await this.repo.save(service)
 
-        // Теперь сохраняем рабочие дни
-        if (workingDays && workingDays.length) {
-            const workingDayEntities = workingDays.map((day) =>
+        // 🔽 3. Сохраняем рабочие дни
+        if (parsedWorkingDays.length) {
+            const workingDayEntities = parsedWorkingDays.map((wd) =>
                 this.workingDaysRepo.create({
-                    dayOfWeek: day,
+                    dayOfWeek: wd.dayOfWeek,
+                    startTime: wd.startTime,
+                    endTime: wd.endTime,
                     service: savedService,
-                }),
+                })
             )
             await this.workingDaysRepo.save(workingDayEntities)
         }
+
         return savedService
     }
     async uploadVideoToS3(serviceId: number, videoFile: Express.Multer.File) {
@@ -175,7 +208,7 @@ export class CarServiceService {
     async findOne(id: number) {
         const service = await this.repo.findOne({
             where: { id },
-            relations: ['city', 'brands', 'masterTypes'], // добавь нужные связи
+            relations: ['city', 'brands', 'masterTypes', 'workingDays'], // добавь нужные связи
         })
 
         if (!service) {

@@ -60,10 +60,18 @@ export class AppointmentsService {
     }
 
 
-    async getByService(serviceId: number) {
+    async getByService(serviceId: number, date?: string) {
+        const where: any = {
+            service: { id: serviceId },
+        }
+
+        if (date) {
+            where.date = date // строка вида '2025-08-06'
+        }
+
         return this.appointmentRepo.find({
-            where: { service: { id: serviceId } },
-            order: { date: 'ASC', time: 'ASC' },
+            where,
+            order: { time: 'ASC' },
         })
     }
 
@@ -73,5 +81,13 @@ export class AppointmentsService {
 
         appointment.status = status
         return this.appointmentRepo.save(appointment)
+    }
+    async findOne(id: number) {
+        const appointment = await this.appointmentRepo.findOne({
+            where: { id },
+        })
+
+        if (!appointment) throw new NotFoundException('Запись не найдена')
+        return appointment
     }
 }

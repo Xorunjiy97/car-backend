@@ -13,6 +13,9 @@ export class CreateAppointmentDto {
     @IsString()
     description: string
 
+    @IsString()
+    phoneNumber: string
+
     @IsDateString()
     date: string // '2025-08-01'
 
