@@ -29,6 +29,9 @@ import { CountryManufacturerModule } from './country_manufacturer/country_manufa
 import { CarShortVideoModule } from './car-short-video/car-short-video.module';
 import { ScheduleExceptionModule } from './schedule-exception/schedule-exception.module';
 import { AppointmentModule } from './appointments/appointments.module';
+import { OilTypeModule } from './oil_types/oil_type.module';
+import { PartCategoryModule } from './part_category/part_category.module';
+import { PartItemsModule } from './parts/part-items.module';
 const passportModule = PassportModule.register({ defaultStrategy: 'jwt' });
 
 @Module({
@@ -43,7 +46,10 @@ const passportModule = PassportModule.register({ defaultStrategy: 'jwt' });
     GearModule,
     AutoBrandModule,
     AutoModelModule,
+    PartItemsModule,
     EngineModule,
+    PartCategoryModule,
+    OilTypeModule,
     BodyModule,
     CountryModule,
     CarModule,
