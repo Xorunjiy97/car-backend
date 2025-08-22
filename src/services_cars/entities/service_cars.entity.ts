@@ -7,6 +7,7 @@ import {
     ManyToMany,
     JoinTable,
     OneToMany,
+    CreateDateColumn,
 } from 'typeorm';
 import { CarBrand } from '../../auto_brand/entities/car-brand.entity';
 import { CityModel } from '../../city/entities/city.entity';
@@ -83,4 +84,8 @@ export class CarServiceEntity {
     @ManyToOne(() => User, { eager: false })
     @JoinColumn({ name: 'created_by' })
     createdBy: User; // <<< Поле кто создал
+
+    @CreateDateColumn({ name: 'created_at' })
+    createdAt: Date
+    
 }

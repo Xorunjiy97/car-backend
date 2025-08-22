@@ -1,6 +1,8 @@
 // create-part-item.dto.ts
-import { IsBoolean, IsInt, IsNotEmpty, IsOptional, IsString, Min } from 'class-validator'
+import { IsBoolean, IsInt, IsNotEmpty, IsNumber, IsOptional, IsString, Max, Min } from 'class-validator'
 import { Transform, Type } from 'class-transformer'
+
+
 
 export class CreatePartItemDto {
     @IsString()
@@ -11,10 +13,14 @@ export class CreatePartItemDto {
     @IsString()
     description?: string
 
-    @IsOptional()
-    @Transform(({ value }) => value === true || value === 'true')
-    @IsBoolean()
-    isUsed?: boolean
+    @Type(() => Number)
+    @IsInt()
+    @Min(0)
+    @Max(1)
+    isUsed: number
+
+    @Type(() => Number) @IsNumber() @Min(0)
+    price: number
 
     @Type(() => Number)
     @IsInt()

@@ -5,6 +5,7 @@ import { PartItem } from '../entities/part-item.entity'
 import { CreatePartItemDto } from '../dto/create-part-item.dto'
 import { UpdatePartItemDto } from '../dto/update-part-item.dto'
 import { QueryPartItemDto } from '../dto/query-part-item.dto'
+import { toBoolean } from 'src/utils/toBoolean'
 
 @Injectable()
 export class PartItemsService {
@@ -20,13 +21,14 @@ export class PartItemsService {
         user: { id: number },
     ) {
         // тут можешь сохранить файлы и получить их пути
+
         const avatarUrl = avatarFile ? `/uploads/parts/${avatarFile.filename}` : null
         const photoUrls = Array.isArray(files) ? files.map(f => `/uploads/parts/${f.filename}`) : []
 
         const entity = this.repo.create({
             title: dto.title,
             description: dto.description,
-            isUsed: dto.isUsed ?? false,
+            isUsed: dto.isUsed ?? 0,
             category: { id: dto.category_id } as any,
             brand: dto.brand_id ? ({ id: dto.brand_id } as any) : undefined,
             model: dto.model_id ? ({ id: dto.model_id } as any) : undefined,
@@ -35,6 +37,7 @@ export class PartItemsService {
             avatar: avatarUrl,
             photos: photoUrls.length ? photoUrls : null,
             moderated: false,
+            price: dto.price,
             sellerName: dto.sellerName,
             sellerPhone: dto.sellerPhone,
             deleted: false,
@@ -128,6 +131,7 @@ export class PartItemsService {
 
         // примитивы
         if (dto.title !== undefined) part.title = dto.title
+        if (dto.price !== undefined) part.price = dto.price
         if (dto.description !== undefined) part.description = dto.description
         if (dto.isUsed !== undefined) part.isUsed = dto.isUsed
         if (dto.sellerName !== undefined) part.sellerName = dto.sellerName

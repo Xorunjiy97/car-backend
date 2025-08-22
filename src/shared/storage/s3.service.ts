@@ -50,6 +50,21 @@ export class StorageService {
         const region = this.appConfigService.awsRegion;
         return `https://${this.bucket}.s3.${region}.amazonaws.com/${key}`;
     }
+    async uploadCarVideoLikes(file: Express.Multer.File, folder = 'cars-likes/videos'): Promise<string> {
+        const key = `${folder}/${Date.now()}_${file.originalname}`;
+
+        const command = new PutObjectCommand({
+            Bucket: this.bucket,
+            Key: key,
+            Body: file.buffer,
+            ContentType: file.mimetype,
+        });
+
+        await this.s3Client.send(command);
+
+        const region = this.appConfigService.awsRegion;
+        return `https://${this.bucket}.s3.${region}.amazonaws.com/${key}`;
+    }
     async uploadShortCarVideo(file: Express.Multer.File, folder = 'shorts-car/videos'): Promise<string> {
         const key = `${folder}/${Date.now()}_${file.originalname}`;
 

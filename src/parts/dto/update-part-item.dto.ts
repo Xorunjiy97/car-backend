@@ -1,15 +1,19 @@
 // update-part-item.dto.ts
-import { IsBoolean, IsInt, IsOptional, IsString, Min } from 'class-validator'
+import { IsBoolean, IsInt, IsNumber, IsOptional, IsString, Max, Min } from 'class-validator'
 import { Transform, Type } from 'class-transformer'
 
 export class UpdatePartItemDto {
     @IsOptional() @IsString() title?: string
     @IsOptional() @IsString() description?: string
 
-    @IsOptional()
-    @Transform(({ value }) => value === true || value === 'true')
-    @IsBoolean()
-    isUsed?: boolean
+    @Type(() => Number)
+    @IsInt()
+    @Min(0)
+    @Max(1)
+    isUsed: number
+
+    @Type(() => Number) @IsNumber() @Min(0)
+    price: number
 
     @IsOptional() @IsString() sellerName?: string
     @IsOptional() @IsString() sellerPhone?: string

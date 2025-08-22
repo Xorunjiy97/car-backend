@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, JoinTable, ManyToMany, OneToMany } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, JoinTable, ManyToMany, OneToMany, CreateDateColumn } from 'typeorm';
 import { CarBrandIternal } from 'src/auta_brands_iternal_cars/entities';
 import { CarModelIternar } from 'src/auto_model_iternal/entities';
 import { EngineModel } from 'src/engine_type/entities/engine.entity';
@@ -133,6 +133,9 @@ export class CarIternal {
   @ManyToOne(() => User)
   @JoinColumn({ name: 'created_by' })
   createdBy: User
+
+  @CreateDateColumn({ name: 'created_at' })
+  createdAt: Date
 
   @OneToMany(() => CarLikeEntity, l => l.car)
   likes: CarLikeEntity[]

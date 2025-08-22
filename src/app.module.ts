@@ -32,6 +32,8 @@ import { AppointmentModule } from './appointments/appointments.module';
 import { OilTypeModule } from './oil_types/oil_type.module';
 import { PartCategoryModule } from './part_category/part_category.module';
 import { PartItemsModule } from './parts/part-items.module';
+import { UserProfileModule } from './users-profile/user-profile.module';
+import { CarsLiteModule } from './wedding_cars/cars-lite.module';
 const passportModule = PassportModule.register({ defaultStrategy: 'jwt' });
 
 @Module({
@@ -44,6 +46,8 @@ const passportModule = PassportModule.register({ defaultStrategy: 'jwt' });
     UsersModule,
     CarShortVideoModule,
     GearModule,
+    UserProfileModule,
+    CarsLiteModule,
     AutoBrandModule,
     AutoModelModule,
     PartItemsModule,

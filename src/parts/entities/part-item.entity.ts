@@ -32,8 +32,11 @@ export class PartItem {
   @Column({ type: 'text', array: true, nullable: true })
   photos?: string[]
 
-  @Column({ default: false })
-  isUsed: boolean
+  @Column({ type: 'int', default: 0 })
+  isUsed: number
+
+  @Column({ type: 'decimal', precision: 12, scale: 2, nullable: true })
+  price: number;
 
   @Column({ default: false })
   moderated: boolean

@@ -11,6 +11,7 @@ import {
     Req,
     UploadedFiles,
     UseInterceptors,
+    ValidationPipe,
 } from '@nestjs/common'
 import { Request } from 'express'
 
@@ -36,7 +37,7 @@ export class PartItemsController {
         )
     )
     async create(
-        @Body() dto: CreatePartItemDto,
+        @Body(new ValidationPipe({ transform: true })) dto: CreatePartItemDto,
         @UploadedFiles()
         files: {
             avatar?: Express.Multer.File[]
