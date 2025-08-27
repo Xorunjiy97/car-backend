@@ -117,6 +117,63 @@ export class PartItemsService {
         })
     }
 
+async softDelete(id: number, userId?: number) {
+  const item = await this.repo.findOne({ where: { id }, relations: ['createdBy'] })
+  if (!item) throw new NotFoundException('Item not found')
+  if (userId && item.createdBy?.id !== userId) {
+    throw new BadRequestException('Нет прав на удаление')
+  }
+  await this.repo.update(id, { deleted: true })
+  return { id, deleted: true }
+}
+  async findByAuthor(
+    userId: number,
+    q: QueryPartItemDto,
+  ) {
+    if (!userId || Number.isNaN(userId)) {
+      throw new BadRequestException('Некорректный пользователь')
+    }
+
+    const page = q.page ?? 1
+    const limit = q.limit ?? 20
+
+    const qb = this.repo
+      .createQueryBuilder('p')
+      .leftJoinAndSelect('p.category', 'category')
+      .leftJoinAndSelect('p.brand', 'brand')
+      .leftJoinAndSelect('p.model', 'model')
+      .leftJoinAndSelect('p.city', 'city')
+      .leftJoin('p.createdBy', 'u')
+      .leftJoinAndSelect('p.createdBy', 'createdBy') // если нужно вернуть автора
+      .where('p.deleted = FALSE')
+      .andWhere('u.id = :uid', { uid: userId })
+      .orderBy('p.createdAt', 'DESC')
+      .skip((page - 1) * limit)
+      .take(limit)
+
+    // опциональные фильтры (по желанию можно включить как в публичном списке)
+    if (q.q) {
+      qb.andWhere('(p.title ILIKE :q OR p.description ILIKE :q)', { q: `%${q.q}%` })
+    }
+    if (q.category_id) qb.andWhere('category.id = :category_id', { category_id: q.category_id })
+    if (q.brand_id) qb.andWhere('brand.id = :brand_id', { brand_id: q.brand_id })
+    if (q.model_id) qb.andWhere('model.id = :model_id', { model_id: q.model_id })
+    if (q.city_id) qb.andWhere('city.id = :city_id', { city_id: q.city_id })
+    if (q.isUsed === 'true') qb.andWhere('p.isUsed = TRUE')
+    if (q.isUsed === 'false') qb.andWhere('p.isUsed = FALSE')
+
+    const [items, total] = await qb.getManyAndCount()
+    return {
+      items,
+      meta: {
+        page,
+        limit,
+        total,
+        pages: Math.ceil(total / limit),
+      },
+    }
+  }
+
     async update(
         id: number,
         dto: UpdatePartItemDto,
@@ -171,10 +228,7 @@ export class PartItemsService {
             relations: { category: true, brand: true, model: true, city: true, createdBy: true },
         })
     }
-    async softDelete(id: number) {
-        await this.repo.update(id, { deleted: true })
-        return { id, deleted: true }
-    }
+  
 
     async moderate(id: number) {
         await this.repo.update(id, { moderated: true })

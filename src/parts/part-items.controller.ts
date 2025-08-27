@@ -10,6 +10,7 @@ import {
     Query,
     Req,
     UploadedFiles,
+    UseGuards,
     UseInterceptors,
     ValidationPipe,
 } from '@nestjs/common'
@@ -21,7 +22,8 @@ import { UpdatePartItemDto } from './dto/update-part-item.dto'
 import { QueryPartItemDto } from './dto/query-part-item.dto'
 import { FileFieldsInterceptor } from '@nestjs/platform-express'
 import { multerConfigParts } from '../../multer.config';
-
+import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard'
+import { AuthGuard } from '@nestjs/passport'
 @Controller('part-items')
 export class PartItemsController {
     constructor(private readonly service: PartItemsService) { }
@@ -36,6 +38,8 @@ export class PartItemsController {
             multerConfigParts,
         )
     )
+
+
     async create(
         @Body(new ValidationPipe({ transform: true })) dto: CreatePartItemDto,
         @UploadedFiles()
@@ -51,7 +55,15 @@ export class PartItemsController {
 
         return this.service.create(dto, avatarFile, photoFiles, { id: user.sub })
     }
-
+    @Get('my')
+    @UseGuards(JwtAuthGuard)
+    async findMy(
+        @Req() req: Request,
+        @Query() q: QueryPartItemDto,
+    ) {
+        const user = req.user as any
+        return this.service.findByAuthor(Number(user.sub), q)
+    }
     @Get()
     findAll(@Query() q: QueryPartItemDto) {
         return this.service.findAll(q)
@@ -89,8 +101,10 @@ export class PartItemsController {
 
 
     @Delete(':id')
-    remove(@Param('id') id: number) {
-        return this.service.softDelete(Number(id))
+    @UseGuards(JwtAuthGuard)
+    remove(@Param('id') id: number, @Req() req: Request) {
+        const user = req.user as any
+        return this.service.softDelete(Number(id), Number(user.sub))
     }
 
     @Patch(':id/moderate')

@@ -13,7 +13,6 @@ import { In, Repository, SelectQueryBuilder } from 'typeorm'
 import { CarBrandIternal } from 'src/auta_brands_iternal_cars/entities'
 import { CarModelIternar } from 'src/auto_model_iternal/entities'
 import { EngineModel } from 'src/engine_type/entities/engine.entity'
-import { CountryManufacturerModel } from 'src/country_manufacturer/entities'
 import { GearModel } from 'src/gear_box/entities/gear.entity'
 import { TechnologyAutoModel } from 'src/technology_avto/entities'
 import { CityModel } from 'src/city/entities'
@@ -42,8 +41,6 @@ export class CarsLiteService {
     private readonly brandRepo: Repository<CarBrandIternal>,
     @InjectRepository(CarModelIternar)
     private readonly modelRepo: Repository<CarModelIternar>,
-    @InjectRepository(CountryManufacturerModel)
-    private readonly countryRepo: Repository<CountryManufacturerModel>,
     @InjectRepository(EngineModel)
     private readonly engineRepo: Repository<EngineModel>,
     @InjectRepository(GearModel)
@@ -88,10 +85,8 @@ export class CarsLiteService {
       .createQueryBuilder('car')
       .leftJoinAndSelect('car.brand', 'brand')
       .leftJoinAndSelect('car.model', 'model')
-      .leftJoinAndSelect('car.country', 'country')
       .leftJoinAndSelect('car.engineType', 'engine')
       .leftJoinAndSelect('car.gearBox', 'gear')
-      .leftJoinAndSelect('car.technologies', 'tech')
       .leftJoinAndSelect('car.city', 'city')
       .where('car.moderated = :moderated', { moderated: true })
       .andWhere('car.deleted = false')
@@ -99,10 +94,7 @@ export class CarsLiteService {
     // справочники
     if (filters.brandId)
       qb.andWhere('brand.id = :brandId', { brandId: filters.brandId })
-    if (filters.countryId?.length)
-      qb.andWhere('country.id IN (:...countryIds)', {
-        countryIds: filters.countryId,
-      })
+  
     if (filters.engineTypeId?.length)
       qb.andWhere('engine.id IN (:...engineTypeIds)', {
         engineTypeIds: filters.engineTypeId,
@@ -327,10 +319,8 @@ async create(
       .createQueryBuilder('car')
       .leftJoinAndSelect('car.brand', 'brand')
       .leftJoinAndSelect('car.model', 'model')
-      .leftJoinAndSelect('car.country', 'country')
       .leftJoinAndSelect('car.engineType', 'engine')
       .leftJoinAndSelect('car.gearBox', 'gear')
-      .leftJoinAndSelect('car.technologies', 'tech')
       .leftJoinAndSelect('car.city', 'city')
       .where('car.createdBy = :userId', { userId })
       .andWhere('car.deleted = false')
@@ -358,10 +348,8 @@ async create(
       })
       .leftJoinAndSelect('car.brand', 'brand')
       .leftJoinAndSelect('car.model', 'model')
-      .leftJoinAndSelect('car.country', 'country')
       .leftJoinAndSelect('car.engineType', 'engine')
       .leftJoinAndSelect('car.gearBox', 'gear')
-      .leftJoinAndSelect('car.technologies', 'tech')
       .leftJoinAndSelect('car.city', 'city')
       .loadRelationCountAndMap('car.likesCount', 'car.likes')
       .loadRelationCountAndMap(
@@ -417,10 +405,8 @@ async create(
       relations: [
         'brand',
         'model',
-        'country',
         'engineType',
         'gearBox',
-        'technologies',
         'city',
       ],
     })

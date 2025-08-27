@@ -6,12 +6,9 @@ import {
 import { CarBrandIternal } from 'src/auta_brands_iternal_cars/entities'
 import { CarModelIternar } from 'src/auto_model_iternal/entities'
 import { EngineModel } from 'src/engine_type/entities/engine.entity'
-import { CountryManufacturerModel } from 'src/country_manufacturer/entities'
 import { CityModel } from 'src/city/entities'
-import { TechnologyAutoModel } from 'src/technology_avto/entities'
 import { GearModel } from 'src/gear_box/entities/gear.entity'
 import { User } from 'src/users/entities/user.entity'
-import { CarLikeEntity } from 'src/cars_iternal/entities/car-like.entity' // можно не подключать, если лайков не будет
 import { DriverOption } from '../enums/driver-option.enum'
 import { CarLiteLikeEntity } from './car-lite-like.entity'
 
